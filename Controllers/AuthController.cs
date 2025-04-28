@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace NewsPortal.Controllers
 {
@@ -19,17 +20,20 @@ namespace NewsPortal.Controllers
         private readonly IConfiguration _configuration;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             SignInManager<ApplicationUser> signInManager,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _configuration = configuration;
             _signInManager = signInManager;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -79,23 +83,42 @@ namespace NewsPortal.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            try 
             {
-                return Unauthorized();
+                _logger.LogInformation("Logout attempt started");
+                _logger.LogInformation("Authorization header: {Header}", Request.Headers["Authorization"].ToString());
+                _logger.LogInformation("User identity name: {Name}", User?.Identity?.Name);
+                _logger.LogInformation("Is user authenticated: {IsAuthenticated}", User?.Identity?.IsAuthenticated);
+
+                if (User == null || !User.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("User is not authenticated");
+                    return Unauthorized(new { Message = "User is not authenticated" });
+                }
+
+                var user = await _userManager.GetUserAsync(User);
+                
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found in database");
+                    return Unauthorized(new { Message = "User not found" });
+                }
+
+                _logger.LogInformation("Found user with email: {Email}", user.Email);
+                await _signInManager.SignOutAsync();
+                _logger.LogInformation("User successfully logged out");
+
+                return Ok(new { 
+                    Message = "Logged out successfully",
+                    Email = user.Email,
+                    LogoutTime = DateTime.UtcNow
+                });
             }
-
-            // Можно добавить токен в черный список
-            // await _blacklistService.AddToBlacklistAsync(token);
-
-            // Очищаем серверную сессию
-            await _signInManager.SignOutAsync();
-
-            return Ok(new { 
-                Message = "Logged out successfully",
-                Email = user.Email,
-                LogoutTime = DateTime.UtcNow
-            });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during logout process");
+                return StatusCode(500, new { Message = "Internal server error", Error = ex.Message });
+            }
         }
 
         private string GenerateJwtToken(ApplicationUser user)
