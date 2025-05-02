@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using NewsPortal.Application.DTOs;
 using NewsPortal.Domain.Entities;
 using NewsPortal.Infrastructure.Data.Repositories;
@@ -16,15 +17,18 @@ namespace NewsPortal.Application.Services
         private readonly LikeRepository _likeRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<LikeService> _logger;
 
         public LikeService(
             LikeRepository likeRepository,
             UserManager<ApplicationUser> userManager,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<LikeService> logger)
         {
             _likeRepository = likeRepository;
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         // Методы для работы с лайками статей
@@ -46,15 +50,43 @@ namespace NewsPortal.Application.Services
 
         public async Task<ArticleLikeDto> LikeArticleAsync(CreateArticleLikeDto createLikeDto)
         {
-            var user = await _userManager.FindByIdAsync(createLikeDto.UserId);
+            ApplicationUser user = null;
+
+            // Сначала пытаемся найти пользователя по ID
+            if (!string.IsNullOrEmpty(createLikeDto.UserId))
+            {
+                _logger.LogInformation($"Поиск пользователя по ID: {createLikeDto.UserId}");
+                user = await _userManager.FindByIdAsync(createLikeDto.UserId);
+            }
+
+            // Если не нашли по ID, пробуем найти по email (если строка похожа на email)
+            if (user == null && createLikeDto.UserId != null && createLikeDto.UserId.Contains("@"))
+            {
+                _logger.LogInformation($"Поиск пользователя по email: {createLikeDto.UserId}");
+                user = await _userManager.FindByEmailAsync(createLikeDto.UserId);
+            }
+
+            // Если пользователь не найден, пробуем получить текущего пользователя
             if (user == null)
             {
-                throw new Exception("User not found");
+                var currentUserId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    _logger.LogInformation($"Поиск текущего пользователя по ID: {currentUserId}");
+                    user = await _userManager.FindByIdAsync(currentUserId);
+                }
+            }
+
+            // Если пользователь все еще не найден - ошибка
+            if (user == null)
+            {
+                _logger.LogError($"Пользователь не найден с идентификатором: {createLikeDto.UserId}");
+                throw new Exception($"User not found with identifier: {createLikeDto.UserId}");
             }
 
             var like = new ArticleLike
             {
-                UserId = createLikeDto.UserId,
+                UserId = user.Id, // Используем ID найденного пользователя
                 User = user,
                 ArticleId = createLikeDto.ArticleId
             };
@@ -87,15 +119,43 @@ namespace NewsPortal.Application.Services
 
         public async Task<CommentLikeDto> LikeCommentAsync(CreateCommentLikeDto createLikeDto)
         {
-            var user = await _userManager.FindByIdAsync(createLikeDto.UserId);
+            ApplicationUser user = null;
+
+            // Сначала пытаемся найти пользователя по ID
+            if (!string.IsNullOrEmpty(createLikeDto.UserId))
+            {
+                _logger.LogInformation($"Поиск пользователя по ID: {createLikeDto.UserId}");
+                user = await _userManager.FindByIdAsync(createLikeDto.UserId);
+            }
+
+            // Если не нашли по ID, пробуем найти по email (если строка похожа на email)
+            if (user == null && createLikeDto.UserId != null && createLikeDto.UserId.Contains("@"))
+            {
+                _logger.LogInformation($"Поиск пользователя по email: {createLikeDto.UserId}");
+                user = await _userManager.FindByEmailAsync(createLikeDto.UserId);
+            }
+
+            // Если пользователь не найден, пробуем получить текущего пользователя
             if (user == null)
             {
-                throw new Exception("User not found");
+                var currentUserId = GetCurrentUserId();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    _logger.LogInformation($"Поиск текущего пользователя по ID: {currentUserId}");
+                    user = await _userManager.FindByIdAsync(currentUserId);
+                }
+            }
+
+            // Если пользователь все еще не найден - ошибка
+            if (user == null)
+            {
+                _logger.LogError($"Пользователь не найден с идентификатором: {createLikeDto.UserId}");
+                throw new Exception($"User not found with identifier: {createLikeDto.UserId}");
             }
 
             var like = new CommentLike
             {
-                UserId = createLikeDto.UserId,
+                UserId = user.Id, // Используем ID найденного пользователя
                 User = user,
                 CommentId = createLikeDto.CommentId
             };

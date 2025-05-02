@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewsPortal.Application.DTOs;
 using NewsPortal.Application.Services;
+using System.Security.Claims;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace NewsPortal.Controllers
 {
@@ -47,8 +49,38 @@ namespace NewsPortal.Controllers
         [Authorize]
         public async Task<ActionResult<CommentDto>> CreateComment(CreateCommentDto createCommentDto)
         {
-            var comment = await _commentService.CreateCommentAsync(createCommentDto);
-            return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
+            try
+            {
+                // Если поле authorId не заполнено, берем ID пользователя из токена
+                if (string.IsNullOrEmpty(createCommentDto.AuthorId))
+                {
+                    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                    if (userIdClaim != null)
+                    {
+                        createCommentDto.AuthorId = userIdClaim.Value;
+                    }
+                    else
+                    {
+                        // Если не удалось получить ID из токена, пробуем получить email
+                        var emailClaim = User.FindFirst(ClaimTypes.Email) ?? User.FindFirst(JwtRegisteredClaimNames.Email);
+                        if (emailClaim != null)
+                        {
+                            createCommentDto.AuthorId = emailClaim.Value;
+                        }
+                        else
+                        {
+                            return BadRequest("Не удалось определить пользователя из токена");
+                        }
+                    }
+                }
+                
+                var comment = await _commentService.CreateCommentAsync(createCommentDto);
+                return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
         }
 
         // PUT: api/Comments/5

@@ -9,19 +9,21 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 
 // Страницы
-import HomePage from './pages/HomePage';
-import ArticlesPage from './pages/ArticlesPage';
-import ArticleDetailPage from './pages/ArticleDetailPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import CreateArticlePage from './pages/CreateArticlePage';
-import EditArticlePage from './pages/EditArticlePage';
-import ProfilePage from './pages/ProfilePage';
-import NotFoundPage from './pages/NotFoundPage';
-import AuthDebugPage from './pages/AuthDebugPage';
-import CategoriesPage from './pages/CategoriesPage';
-import TagsPage from './pages/TagsPage';
-import ApiDebugPage from './pages/ApiDebugPage';
+import {
+  HomePage,
+  ArticlesPage,
+  ArticleDetailPage,
+  LoginPage,
+  RegisterPage,
+  CreateArticlePage,
+  EditArticlePage,
+  ProfilePage,
+  NotFoundPage,
+  AuthDebugPage,
+  CategoriesPage,
+  TagsPage,
+  ApiDebugPage
+} from './pages';
 
 function App() {
   return (

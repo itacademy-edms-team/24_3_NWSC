@@ -1,0 +1,13 @@
+export { default as HomePage } from './HomePage';
+export { default as ArticlesPage } from './ArticlesPage';
+export { default as ArticleDetailPage } from './ArticleDetailPage';
+export { default as LoginPage } from './LoginPage';
+export { default as RegisterPage } from './RegisterPage';
+export { default as CreateArticlePage } from './CreateArticlePage';
+export { default as EditArticlePage } from './EditArticlePage';
+export { default as ProfilePage } from './ProfilePage';
+export { default as NotFoundPage } from './NotFoundPage';
+export { default as AuthDebugPage } from './AuthDebugPage';
+export { default as ApiDebugPage } from './ApiDebugPage';
+export { default as CategoriesPage } from './CategoriesPage';
+export { default as TagsPage } from './TagsPage'; 

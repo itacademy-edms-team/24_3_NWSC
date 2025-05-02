@@ -63,17 +63,25 @@ namespace NewsPortal.Application.Services
 
         public async Task<CommentDto> CreateCommentAsync(CreateCommentDto createCommentDto)
         {
-            var user = await _userManager.FindByIdAsync(createCommentDto.AuthorId);
+            // Пробуем найти пользователя по email, так как в authorId передается email
+            var user = await _userManager.FindByEmailAsync(createCommentDto.AuthorId);
+            
+            // Если не нашли по email, пробуем найти по ID
             if (user == null)
             {
-                throw new Exception("User not found");
+                user = await _userManager.FindByIdAsync(createCommentDto.AuthorId);
+            }
+            
+            if (user == null)
+            {
+                throw new Exception($"User not found with identifier: {createCommentDto.AuthorId}");
             }
 
             var comment = new Comment
             {
                 Text = createCommentDto.Text,
                 ArticleId = createCommentDto.ArticleId,
-                AuthorId = createCommentDto.AuthorId,
+                AuthorId = user.Id, // Используем ID пользователя из найденного объекта
                 Author = user,
                 ParentCommentId = createCommentDto.ParentCommentId
             };

@@ -4,6 +4,7 @@ import { Comment, CreateCommentDto } from '../types/models';
 import { getArticleComments, createComment } from '../services/commentService';
 import { authService } from '../services/authService';
 import CommentItem from './CommentItem';
+import ApiDebugButton from './ApiDebugButton';
 
 interface CommentSectionProps {
   articleId: number;
@@ -74,15 +75,24 @@ const CommentSection: React.FC<CommentSectionProps> = ({ articleId }) => {
     setDebug(null);
     
     try {
+      // Получаем email пользователя из локального хранилища или из объекта currentUser
+      const userEmail = currentUser.email || localStorage.getItem('userId') || '';
+      
+      if (!userEmail) {
+        setError('Не удалось определить email пользователя. Пожалуйста, войдите в систему заново.');
+        setSubmitting(false);
+        return;
+      }
+      
       console.log('Creating comment with data:', {
         text: newComment,
-        authorId: currentUser.email,
+        authorId: userEmail,
         articleId
       });
       
       const commentDto: CreateCommentDto = {
         text: newComment,
-        authorId: currentUser.email,
+        authorId: userEmail,
         articleId: articleId
       };
       
@@ -103,7 +113,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ articleId }) => {
         setDebug({
           message: error.message,
           status: error.response.status,
-          data: error.response.data
+          data: error.response.data,
+          token: localStorage.getItem('token') ? 'Токен есть' : 'Токен отсутствует',
+          currentUser: currentUser,
+          userFromStorage: {
+            userId: localStorage.getItem('userId'),
+            userName: localStorage.getItem('userName'),
+            userJson: localStorage.getItem('user')
+          }
         });
         
         if (typeof error.response.data === 'string') {
@@ -245,13 +262,22 @@ const CommentSection: React.FC<CommentSectionProps> = ({ articleId }) => {
               >
                 {submitting ? 'Отправка...' : 'Отправить'}
               </Button>
-              <Button 
-                variant="link" 
-                className="ms-2" 
-                onClick={() => window.open('/api-debug', '_blank')}
-              >
-                Отладка API
-              </Button>
+              <ApiDebugButton 
+                endpoint={`/Comments/Article/${articleId}`}
+                method="GET"
+                title="Все комментарии"
+              />
+              <ApiDebugButton 
+                endpoint="/Comments"
+                method="POST" 
+                body={{
+                  text: newComment || "Тестовый комментарий",
+                  authorId: currentUser?.email || localStorage.getItem('userId') || "",
+                  articleId: articleId
+                }}
+                title="Тест создания"
+                includeAuth={true}
+              />
             </Form>
           </Card.Body>
         </Card>

@@ -18,10 +18,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000") // URL вашего React-приложения
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5000") // URL вашего React-приложения
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Content-Disposition");
+    });
+    
+    // Дополнительная политика для отладки, которая разрешает все источники
+    options.AddPolicy("Debug", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -150,6 +159,12 @@ var app = builder.Build();
 
 // Добавьте CORS middleware перед другими middleware
 app.UseCors("ReactApp");
+
+// Для отладки через API Debug Page используем более свободную политику
+app.Map("/api/health", appBuilder =>
+{
+    appBuilder.UseCors("Debug");
+});
 
 // Добавьте этот код для инициализации ролей
 using (var scope = app.Services.CreateScope())

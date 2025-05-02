@@ -99,4 +99,44 @@ api.interceptors.response.use(
   }
 );
 
+// Функция для проверки доступности сервера
+export const checkServerHealth = async (): Promise<boolean> => {
+  try {
+    // Сначала пробуем более подробный эндпоинт
+    const response = await axios.get(`${API_URL}/health/check`, { 
+      timeout: 5000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (ENABLE_DEBUG) {
+      console.log('Сервер доступен:', response.data);
+    }
+    
+    return response.status === 200;
+  } catch (error) {
+    if (ENABLE_DEBUG) {
+      console.error('Ошибка при проверке доступности сервера:', error);
+    }
+    
+    // Пробуем запасной вариант
+    try {
+      const fallbackResponse = await axios.get(`${API_URL}/health/ping`, { timeout: 3000 });
+      
+      if (ENABLE_DEBUG) {
+        console.log('Сервер доступен (запасной вариант):', fallbackResponse.data);
+      }
+      
+      return fallbackResponse.status === 200;
+    } catch (fallbackError) {
+      if (ENABLE_DEBUG) {
+        console.error('Сервер недоступен и при проверке запасным вариантом:', fallbackError);
+      }
+      return false;
+    }
+  }
+};
+
 export default api; 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { getPopularArticles, getLatestArticles } from '../services/articleService';
+import { checkServerHealth } from '../services/api';
 import { Article } from '../types/models';
 import ArticleCard from '../components/ArticleCard';
 
@@ -17,16 +17,28 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        // Простая проверка доступности API сервера
-        await axios.get('http://localhost:5181/api/health/ping', { timeout: 5000 });
-        setServerStatus('online');
+        const isServerAvailable = await checkServerHealth();
+        
+        if (isServerAvailable) {
+          console.log('Сервер доступен');
+          setServerStatus('online');
+        } else {
+          console.error('Сервер недоступен');
+          setServerStatus('offline');
+        }
       } catch (error) {
-        console.error('Server check failed:', error);
+        console.error('Ошибка при проверке доступности сервера:', error);
         setServerStatus('offline');
       }
     };
     
     checkServerStatus();
+    
+    // Проверяем каждые 30 секунд
+    const intervalId = setInterval(checkServerStatus, 30000);
+    
+    // Очистка при размонтировании
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -66,6 +78,12 @@ const HomePage: React.FC = () => {
           <div className="d-flex justify-content-between">
             <Button variant="outline-danger" onClick={() => window.location.reload()}>
               Обновить страницу
+            </Button>
+            <Button 
+              variant="outline-primary" 
+              onClick={() => window.open('http://localhost:5181/api/health/ping', '_blank')}
+            >
+              Прямая проверка API
             </Button>
             <Link to="/auth-debug" className="btn btn-info">
               Перейти к отладке

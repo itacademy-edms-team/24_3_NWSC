@@ -6,6 +6,7 @@ import { Article } from '../types/models';
 import LikeButton from '../components/LikeButton';
 import CommentSection from '../components/CommentSection';
 import { authService } from '../services/authService';
+import ApiDebugButton from '../components/ApiDebugButton';
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -130,6 +131,11 @@ const ArticleDetailPage: React.FC = () => {
                   initialLikesCount={article.likeCount || 0}
                   initialLiked={article.isLikedByCurrentUser || false}
                   onLikeChange={handleLikeChange}
+                />
+                <ApiDebugButton 
+                  endpoint={`/Likes/Article/${article.id}/Count`}
+                  method="GET"
+                  title="Отладка лайков"
                 />
               </div>
             </div>
