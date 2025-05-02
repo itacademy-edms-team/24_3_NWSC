@@ -13,6 +13,18 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Добавьте CORS перед другими сервисами
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000") // URL вашего React-приложения
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 // Добавляем DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -135,6 +147,9 @@ builder.Services.AddScoped<RoleManager<IdentityRole>>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// Добавьте CORS middleware перед другими middleware
+app.UseCors("ReactApp");
 
 // Добавьте этот код для инициализации ролей
 using (var scope = app.Services.CreateScope())
