@@ -49,19 +49,66 @@ namespace NewsPortal.Application.Services
             return MapToArticleDto(article);
         }
 
+        public async Task<ArticleDto> GetArticleByIdWithViewAsync(int id)
+        {
+            var article = await _articleRepository.GetArticleByIdAsync(id);
+            if (article == null)
+            {
+                return null;
+            }
+
+            await IncrementViewCountAsync(id);
+            
+            return MapToArticleDto(article);
+        }
+
+        public async Task<bool> IncrementViewCountAsync(int articleId)
+        {
+            var article = await _articleRepository.GetArticleByIdAsync(articleId);
+            if (article == null)
+            {
+                return false;
+            }
+            
+            article.ViewCount++;
+            await _articleRepository.UpdateArticleAsync(article);
+            return true;
+        }
+
         public async Task<ArticleDto> CreateArticleAsync(CreateArticleDto createArticleDto)
         {
-            var user = await _userManager.FindByIdAsync(createArticleDto.AuthorId);
-            if (user == null)
+            if (string.IsNullOrEmpty(createArticleDto.AuthorId))
             {
-                throw new Exception("User not found");
+                throw new ArgumentException("Author ID cannot be empty", nameof(createArticleDto.AuthorId));
+            }
+            
+            // Проверяем, является ли authorId email или идентификатором пользователя
+            ApplicationUser user = null;
+            
+            // Если строка содержит @, считаем её email
+            if (createArticleDto.AuthorId.Contains("@"))
+            {
+                user = await _userManager.FindByEmailAsync(createArticleDto.AuthorId);
+                if (user == null)
+                {
+                    throw new InvalidOperationException($"User with email {createArticleDto.AuthorId} not found");
+                }
+            }
+            else
+            {
+                // Иначе пробуем найти по ID
+                user = await _userManager.FindByIdAsync(createArticleDto.AuthorId);
+                if (user == null)
+                {
+                    throw new InvalidOperationException($"User with ID {createArticleDto.AuthorId} not found");
+                }
             }
 
             var article = new Article
             {
                 Title = createArticleDto.Title,
                 Content = createArticleDto.Content,
-                AuthorId = createArticleDto.AuthorId,
+                AuthorId = user.Id,
                 Author = user
             };
 
@@ -163,28 +210,72 @@ namespace NewsPortal.Application.Services
             };
         }
 
+        public async Task<ArticleListDto> GetPopularArticlesAsync(int page = 1, int pageSize = 10)
+        {
+            // Получаем статьи, отсортированные по количеству просмотров
+            var articles = await _articleRepository.GetPopularArticlesAsync(page, pageSize);
+            var totalCount = await _articleRepository.GetArticlesCountAsync(null);
+            var pageCount = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var articleDtos = articles.Select(MapToArticleDto).ToList();
+
+            return new ArticleListDto
+            {
+                Articles = articleDtos,
+                TotalCount = totalCount,
+                PageCount = pageCount,
+                CurrentPage = page,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<int> GetArticlesCountAsync()
+        {
+            return await _articleRepository.GetArticlesCountAsync(null);
+        }
+
         private ArticleDto MapToArticleDto(Article article)
         {
+            // Защита от null в полях Author, Categories и Tags
+            var authorName = "Unknown";
+            if (article.Author != null)
+            {
+                var firstName = article.Author.FirstName ?? "";
+                var lastName = article.Author.LastName ?? "";
+                authorName = $"{firstName} {lastName}".Trim();
+                if (string.IsNullOrWhiteSpace(authorName))
+                {
+                    authorName = article.Author.UserName ?? "Unknown";
+                }
+            }
+            
             return new ArticleDto
             {
                 Id = article.Id,
-                Title = article.Title,
-                Content = article.Content,
+                Title = article.Title ?? "",
+                Content = article.Content ?? "",
                 CreatedAt = article.CreatedAt,
                 UpdatedAt = article.UpdatedAt,
-                AuthorId = article.AuthorId,
-                AuthorName = $"{article.Author.FirstName} {article.Author.LastName}",
-                Categories = article.ArticleCategories.Select(ac => new CategoryDto
-                {
-                    Id = ac.Category.Id,
-                    Name = ac.Category.Name,
-                    Description = ac.Category.Description
-                }).ToList(),
-                Tags = article.ArticleTags.Select(at => new TagDto
-                {
-                    Id = at.Tag.Id,
-                    Name = at.Tag.Name
-                }).ToList()
+                AuthorId = article.AuthorId ?? "",
+                AuthorName = authorName,
+                ViewCount = article.ViewCount,
+                Categories = article.ArticleCategories?
+                    .Where(ac => ac.Category != null)
+                    .Select(ac => new CategoryDto
+                    {
+                        Id = ac.Category.Id,
+                        Name = ac.Category.Name ?? "",
+                        Description = ac.Category.Description ?? ""
+                    })
+                    .ToList() ?? new List<CategoryDto>(),
+                Tags = article.ArticleTags?
+                    .Where(at => at.Tag != null)
+                    .Select(at => new TagDto
+                    {
+                        Id = at.Tag.Id,
+                        Name = at.Tag.Name ?? ""
+                    })
+                    .ToList() ?? new List<TagDto>()
             };
         }
     }

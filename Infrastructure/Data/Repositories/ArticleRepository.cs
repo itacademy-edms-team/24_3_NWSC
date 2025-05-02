@@ -66,7 +66,9 @@ namespace NewsPortal.Infrastructure.Data.Repositories
             article.CreatedAt = DateTime.UtcNow;
             await _context.Articles.AddAsync(article);
             await _context.SaveChangesAsync();
-            return article;
+            
+            // Возвращаем статью с загруженными связанными сущностями
+            return await GetArticleByIdAsync(article.Id);
         }
 
         public async Task<Article> UpdateArticleAsync(Article article)
@@ -120,6 +122,20 @@ namespace NewsPortal.Infrastructure.Data.Repositories
                         .ThenInclude(at => at.Tag)
                 .Select(at => at.Article)
                 .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<List<Article>> GetPopularArticlesAsync(int page = 1, int pageSize = 10)
+        {
+            return await _context.Articles
+                .Include(a => a.Author)
+                .Include(a => a.ArticleCategories)
+                    .ThenInclude(ac => ac.Category)
+                .Include(a => a.ArticleTags)
+                    .ThenInclude(at => at.Tag)
+                .OrderByDescending(a => a.ViewCount)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

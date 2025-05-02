@@ -14,6 +14,9 @@ namespace NewsPortal.Domain.Entities
         public string AuthorId { get; set; } = string.Empty;
         public ApplicationUser Author { get; set; } = null!;
         
+        // Счетчик просмотров
+        public int ViewCount { get; set; } = 0;
+        
         public ICollection<ArticleCategory> ArticleCategories { get; set; } = new List<ArticleCategory>();
         public ICollection<ArticleTag> ArticleTags { get; set; } = new List<ArticleTag>();
         

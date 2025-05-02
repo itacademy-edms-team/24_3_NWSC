@@ -87,30 +87,57 @@ namespace NewsPortal.Controllers
             {
                 _logger.LogInformation("Logout attempt started");
                 _logger.LogInformation("Authorization header: {Header}", Request.Headers["Authorization"].ToString());
-                _logger.LogInformation("User identity name: {Name}", User?.Identity?.Name);
-                _logger.LogInformation("Is user authenticated: {IsAuthenticated}", User?.Identity?.IsAuthenticated);
-
-                if (User == null || !User.Identity.IsAuthenticated)
-                {
-                    _logger.LogWarning("User is not authenticated");
-                    return Unauthorized(new { Message = "User is not authenticated" });
-                }
-
-                var user = await _userManager.GetUserAsync(User);
                 
-                if (user == null)
+                // Получаем email из Claims
+                var userEmailClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+                
+                if (userEmailClaim == null)
                 {
-                    _logger.LogWarning("User not found in database");
-                    return Unauthorized(new { Message = "User not found" });
+                    _logger.LogWarning("User identifier claim not found in token");
+                    // Даже если не нашли email, возвращаем успешный результат
+                    // JWT токены не имеют состояния на сервере, так что "logout" это просто
+                    // удаление токена на стороне клиента
+                    return Ok(new { 
+                        Message = "Logged out successfully", 
+                        LogoutTime = DateTime.UtcNow 
+                    });
+                }
+                
+                var userIdOrEmail = userEmailClaim.Value;
+                _logger.LogInformation("User identifier from token: {Identifier}", userIdOrEmail);
+                
+                // В JWT токенах мы используем как NameIdentifier user.Id, а как Sub - email
+                // Попробуем найти пользователя по ID или email
+                ApplicationUser? user = null;
+                
+                // Проверяем формат - если это похоже на Guid, то это Id
+                if (Guid.TryParse(userIdOrEmail, out _))
+                {
+                    user = await _userManager.FindByIdAsync(userIdOrEmail);
+                }
+                else
+                {
+                    // Иначе пробуем как email
+                    user = await _userManager.FindByEmailAsync(userIdOrEmail);
+                }
+                
+                if (user != null)
+                {
+                    _logger.LogInformation("Found user with email: {Email}", user.Email);
+                    // JWT токены не имеют состояния на сервере, но мы можем подчистить 
+                    // cookie-сессию если она есть
+                    await _signInManager.SignOutAsync();
+                    _logger.LogInformation("User successfully logged out from cookie session");
+                }
+                else
+                {
+                    _logger.LogWarning("User not found in database, but token is valid");
                 }
 
-                _logger.LogInformation("Found user with email: {Email}", user.Email);
-                await _signInManager.SignOutAsync();
-                _logger.LogInformation("User successfully logged out");
-
+                // Всегда возвращаем успех, так как клиент должен просто удалить токен
                 return Ok(new { 
                     Message = "Logged out successfully",
-                    Email = user.Email,
+                    Email = user?.Email,
                     LogoutTime = DateTime.UtcNow
                 });
             }
@@ -123,12 +150,26 @@ namespace NewsPortal.Controllers
 
         private string GenerateJwtToken(ApplicationUser user)
         {
-            var claims = new[]
+            var claims = new List<Claim>
             {
+                // Стандартные JWT-claims
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id)
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                
+                // ASP.NET Identity claims
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Email, user.Email)
             };
+            
+            // Добавляем роли пользователя в claims
+            var userRoles = _userManager.GetRolesAsync(user).Result;
+            foreach (var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim("role", role)); // Дублируем в более простом формате
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

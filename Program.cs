@@ -9,6 +9,7 @@ using NewsPortal.Application.Services;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Logging;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,10 +34,13 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     var configuration = builder.Configuration;
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -47,7 +51,8 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured"))
-        )
+        ),
+        ClockSkew = TimeSpan.Zero
     };
     
     options.Events = new JwtBearerEvents
@@ -61,13 +66,19 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Token validated successfully");
+            logger.LogInformation("Token validated successfully for user: {User}", context.Principal?.Identity?.Name);
             return Task.CompletedTask;
         },
         OnMessageReceived = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("Authorization header: {Header}", context.Request.Headers["Authorization"].ToString());
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Authorization challenge. Reason: {Reason}", context.Error ?? "Unknown");
             return Task.CompletedTask;
         }
     };
@@ -77,11 +88,15 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<ArticleRepository>();
 builder.Services.AddScoped<CommentRepository>();
 builder.Services.AddScoped<LikeRepository>();
+builder.Services.AddScoped<CategoryRepository>();
+builder.Services.AddScoped<TagRepository>();
 
 // Регистрация сервисов
 builder.Services.AddScoped<ArticleService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<LikeService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<TagService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -92,14 +107,15 @@ builder.Services.AddSwaggerGen(c =>
     // Добавляем поддержку JWT токена в Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5...\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -108,12 +124,9 @@ builder.Services.AddSwaggerGen(c =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header,
+                }
             },
-            new List<string>()
+            new string[] {}
         }
     });
 });
@@ -142,11 +155,17 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "News Portal API v1");
+        c.DocExpansion(DocExpansion.None);
+    });
+    app.UseDeveloperExceptionPage();
 }
 
+// Используем аутентификацию и авторизацию в правильном порядке
 app.UseHttpsRedirection();
-app.UseAuthentication();
+app.UseRouting();
+app.UseAuthentication(); // Должно быть перед UseAuthorization
 app.UseAuthorization();
 app.MapControllers();
 

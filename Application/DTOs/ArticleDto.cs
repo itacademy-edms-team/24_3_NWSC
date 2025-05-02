@@ -12,6 +12,7 @@ namespace NewsPortal.Application.DTOs
         public DateTime? UpdatedAt { get; set; }
         public string AuthorId { get; set; } = string.Empty;
         public string AuthorName { get; set; } = string.Empty;
+        public int ViewCount { get; set; }
         public List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
         public List<TagDto> Tags { get; set; } = new List<TagDto>();
     }
