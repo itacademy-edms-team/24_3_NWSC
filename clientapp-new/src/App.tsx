@@ -19,6 +19,8 @@ import EditArticlePage from './pages/EditArticlePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
 import AuthDebugPage from './pages/AuthDebugPage';
+import CategoriesPage from './pages/CategoriesPage';
+import TagsPage from './pages/TagsPage';
 
 function App() {
   return (
@@ -36,6 +38,10 @@ function App() {
             <Route path="/edit-article/:id" element={<EditArticlePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/auth-debug" element={<AuthDebugPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/categories/:id" element={<CategoriesPage />} />
+            <Route path="/tags" element={<TagsPage />} />
+            <Route path="/tags/:id" element={<TagsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Container>

@@ -29,7 +29,7 @@ const Header: React.FC = () => {
             <Nav.Link as={Link} to="/categories">Категории</Nav.Link>
             <Nav.Link as={Link} to="/tags">Теги</Nav.Link>
             {isAuthenticated && (
-              <Nav.Link as={Link} to="/articles/new">Создать статью</Nav.Link>
+              <Nav.Link as={Link} to="/create-article">Создать статью</Nav.Link>
             )}
           </Nav>
           <Nav>
