@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Badge, Button, Modal } from 'react-bootstrap';
+import { Card, Row, Col, Badge, Button, Modal, Container } from 'react-bootstrap';
 import { getArticleById, deleteArticle } from '../services/articleService';
 import { Article } from '../types/models';
+import LikeButton from '../components/LikeButton';
+import CommentSection from '../components/CommentSection';
+import { authService } from '../services/authService';
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +51,15 @@ const ArticleDetailPage: React.FC = () => {
     }
   };
 
+  const handleLikeChange = (liked: boolean, count: number) => {
+    if (article) {
+      const updatedArticle = { ...article };
+      updatedArticle.likeCount = count;
+      updatedArticle.isLikedByCurrentUser = liked;
+      setArticle(updatedArticle);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('ru-RU', {
@@ -88,7 +100,7 @@ const ArticleDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="article-detail-page">
+    <Container className="article-detail-page">
       <Card className="mb-4">
         <Card.Body>
           <h1 className="article-title mb-3">{article.title}</h1>
@@ -108,10 +120,17 @@ const ArticleDetailPage: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div>
-                <span className="text-muted">
+              <div className="d-flex align-items-center">
+                <span className="text-muted me-3">
                   <i className="bi bi-eye"></i> {article.viewCount} просмотров
                 </span>
+                <LikeButton 
+                  type="article"
+                  id={article.id}
+                  initialLikesCount={article.likeCount || 0}
+                  initialLiked={article.isLikedByCurrentUser || false}
+                  onLikeChange={handleLikeChange}
+                />
               </div>
             </div>
           </div>
@@ -120,7 +139,7 @@ const ArticleDetailPage: React.FC = () => {
             <div className="article-categories mb-2">
               <strong>Категории: </strong>
               {article.categories.map(category => (
-                <Link to={`/articles?category=${category.id}`} key={category.id}>
+                <Link to={`/categories/${category.id}`} key={category.id}>
                   <Badge bg="primary" className="me-1">{category.name}</Badge>
                 </Link>
               ))}
@@ -131,7 +150,7 @@ const ArticleDetailPage: React.FC = () => {
             <div className="article-tags mb-3">
               <strong>Теги: </strong>
               {article.tags.map(tag => (
-                <Link to={`/articles?tag=${tag.id}`} key={tag.id}>
+                <Link to={`/tags/${tag.id}`} key={tag.id}>
                   <Badge bg="secondary" className="me-1">{tag.name}</Badge>
                 </Link>
               ))}
@@ -159,6 +178,9 @@ const ArticleDetailPage: React.FC = () => {
         &larr; Назад к списку статей
       </Link>
       
+      {/* Секция комментариев */}
+      <CommentSection articleId={article.id} />
+      
       {/* Модальное окно подтверждения удаления */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
         <Modal.Header closeButton>
@@ -176,7 +198,7 @@ const ArticleDetailPage: React.FC = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+    </Container>
   );
 };
 

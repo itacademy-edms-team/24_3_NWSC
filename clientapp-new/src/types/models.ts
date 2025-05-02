@@ -9,6 +9,8 @@ export interface Article {
   viewCount: number;
   categories: Category[];
   tags: Tag[];
+  likeCount: number;
+  isLikedByCurrentUser: boolean;
 }
 
 export interface ArticleList {
@@ -67,4 +69,63 @@ export interface AuthResponse {
   token: string;
   logoutUrl: string;
   user: User;
+}
+
+export interface Comment {
+  id: number;
+  text: string;
+  createdAt: string;
+  updatedAt: string | null;
+  authorId: string;
+  authorName: string;
+  articleId: number;
+  parentCommentId?: number | null;
+  likesCount: number;
+  isLikedByCurrentUser: boolean;
+  replies: Comment[];
+}
+
+export interface CommentList {
+  comments: Comment[];
+  totalCount: number;
+  pageCount: number;
+  currentPage: number;
+  pageSize: number;
+}
+
+export interface CreateCommentDto {
+  text: string;
+  authorId: string;
+  articleId: number;
+  parentCommentId?: number | null;
+}
+
+export interface UpdateCommentDto {
+  text: string;
+}
+
+export interface ArticleLike {
+  id: number;
+  userId: string;
+  userName: string;
+  articleId: number;
+  createdAt: string;
+}
+
+export interface CommentLike {
+  id: number;
+  userId: string;
+  userName: string;
+  commentId: number;
+  createdAt: string;
+}
+
+export interface CreateArticleLikeDto {
+  userId: string;
+  articleId: number;
+}
+
+export interface CreateCommentLikeDto {
+  userId: string;
+  commentId: number;
 } 
