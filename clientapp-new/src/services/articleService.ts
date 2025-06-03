@@ -8,6 +8,13 @@ export const getArticles = async (page = 1, pageSize = 10, search?: string): Pro
   return response.data;
 };
 
+// Получить все статьи для ленточного режима
+export const getAllArticlesForFeed = async (search?: string): Promise<Article[]> => {
+  const params = { page: 1, pageSize: 1000, search }; // Большой pageSize для получения всех статей
+  const response = await api.get<ArticleList>('/Articles', { params });
+  return response.data.articles;
+};
+
 // Получить статью по ID
 export const getArticleById = async (id: number): Promise<Article> => {
   const response = await api.get<Article>(`/Articles/${id}`);

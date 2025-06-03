@@ -14,6 +14,9 @@ namespace NewsPortal.Application.DTOs
         public string AuthorId { get; set; } = string.Empty;
         public string AuthorName { get; set; } = string.Empty;
         public int ViewCount { get; set; }
+        public int CommentsCount { get; set; }
+        public int LikeCount { get; set; }
+        public bool IsLikedByCurrentUser { get; set; }
         public List<string> ImagePaths { get; set; } = new List<string>();
         public string? ImagePath { get; set; }
         public List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();

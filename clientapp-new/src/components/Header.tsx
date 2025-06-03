@@ -2,9 +2,11 @@ import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const isAuthenticated = authService.isAuthenticated();
   const currentUser = authService.getCurrentUser();
   const isAdmin = authService.isAdmin();
@@ -39,6 +41,16 @@ const Header: React.FC = () => {
             )}
           </Nav>
           <Nav>
+            <Nav.Item className="d-flex align-items-center">
+              <button
+                className="theme-toggle me-3"
+                onClick={toggleTheme}
+                title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+              >
+                <i className={`bi ${theme === 'light' ? 'bi-moon-stars' : 'bi-sun'} theme-icon`}></i>
+              </button>
+            </Nav.Item>
+            
             {isAuthenticated ? (
               <>
                 <Navbar.Text className="me-2">

@@ -346,6 +346,9 @@ namespace NewsPortal.Application.Services
                 AuthorId = article.AuthorId ?? "",
                 AuthorName = authorName,
                 ViewCount = article.ViewCount,
+                CommentsCount = article.Comments?.Count ?? 0,
+                LikeCount = article.Likes?.Count ?? 0,
+                IsLikedByCurrentUser = false, // TODO: implement based on current user
                 ImagePaths = imagePaths,
                 ImagePath = article.ImagePath,
                 Categories = article.ArticleCategories?

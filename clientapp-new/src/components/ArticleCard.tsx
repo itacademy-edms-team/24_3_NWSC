@@ -65,7 +65,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
       )}
       <Card.Body>
         <Card.Title>
-          <Link to={`/articles/${article.id}`} className="text-decoration-none text-dark">
+          <Link to={`/articles/${article.id}`} className="text-decoration-none">
             {article.title}
           </Link>
         </Card.Title>
@@ -88,7 +88,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article }) => {
           {summary}
         </Card.Text>
       </Card.Body>
-      <Card.Footer className="bg-white">
+      <Card.Footer>
         <div className="d-flex justify-content-between">
           <small className="text-muted">Просмотры: {article.viewCount}</small>
           <Link to={`/articles/${article.id}`} className="btn btn-sm btn-outline-primary">

@@ -7,6 +7,7 @@ export interface Article {
   authorId: string;
   authorName: string;
   viewCount: number;
+  commentsCount: number;
   imagePaths: string[];
   imagePath?: string;
   categories: Category[];

@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Form, InputGroup, Button, Pagination } from 'react-bootstrap';
+import { Row, Col, Form, InputGroup, Button, Pagination, ButtonGroup, Container } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
-import { getArticles } from '../services/articleService';
+import { getArticles, getAllArticlesForFeed } from '../services/articleService';
 import { Article, ArticleList } from '../types/models';
 import ArticleCard from '../components/ArticleCard';
+import ArticleFeedCard from '../components/ArticleFeedCard';
+
+type ViewMode = 'grid' | 'feed';
 
 const ArticlesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
+  const [feedArticles, setFeedArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [pagination, setPagination] = useState({
     currentPage: parseInt(searchParams.get('page') || '1', 10),
@@ -18,8 +23,12 @@ const ArticlesPage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchArticles();
-  }, [pagination.currentPage, searchTerm]);
+    if (viewMode === 'grid') {
+      fetchArticles();
+    } else {
+      fetchAllArticles();
+    }
+  }, [pagination.currentPage, searchTerm, viewMode]);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -38,6 +47,18 @@ const ArticlesPage: React.FC = () => {
     }
   };
 
+  const fetchAllArticles = async () => {
+    setLoading(true);
+    try {
+      const data = await getAllArticlesForFeed(searchTerm);
+      setFeedArticles(data);
+    } catch (error) {
+      console.error('Error fetching articles for feed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Обновляем URL параметры
@@ -49,6 +70,17 @@ const ArticlesPage: React.FC = () => {
       ...pagination,
       currentPage: 1
     });
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    // При переключении на сеточный режим сбрасываем на первую страницу
+    if (mode === 'grid') {
+      setPagination({
+        ...pagination,
+        currentPage: 1
+      });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -147,22 +179,47 @@ const ArticlesPage: React.FC = () => {
         <div className="text-center py-5">Загрузка...</div>
       ) : (
         <>
-          {articles.length === 0 ? (
+          {articles.length === 0 && feedArticles.length === 0 ? (
             <div className="text-center py-5">
               <h3>Статьи не найдены</h3>
               <p>Попробуйте изменить параметры поиска</p>
             </div>
           ) : (
             <>
-              <Row>
-                {articles.map(article => (
-                  <Col md={4} key={article.id} className="mb-4">
-                    <ArticleCard article={article} />
-                  </Col>
-                ))}
-              </Row>
+              <ButtonGroup className="mb-4">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'outline-secondary'}
+                  onClick={() => handleViewModeChange('grid')}
+                >
+                  Сеточный режим
+                </Button>
+                <Button
+                  variant={viewMode === 'feed' ? 'secondary' : 'outline-secondary'}
+                  onClick={() => handleViewModeChange('feed')}
+                >
+                  Ленточный режим
+                </Button>
+              </ButtonGroup>
               
-              {pagination.pageCount > 1 && renderPagination()}
+              {viewMode === 'grid' ? (
+                <>
+                  <Row>
+                    {articles.map(article => (
+                      <Col md={4} key={article.id} className="mb-4">
+                        <ArticleCard article={article} />
+                      </Col>
+                    ))}
+                  </Row>
+                  
+                  {pagination.pageCount > 1 && renderPagination()}
+                </>
+              ) : (
+                <Container style={{ maxWidth: '800px' }}>
+                  {feedArticles.map(article => (
+                    <ArticleFeedCard key={article.id} article={article} />
+                  ))}
+                </Container>
+              )}
             </>
           )}
         </>

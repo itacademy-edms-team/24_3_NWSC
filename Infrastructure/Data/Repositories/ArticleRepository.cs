@@ -20,6 +20,8 @@ namespace NewsPortal.Infrastructure.Data.Repositories
         {
             var query = _context.Articles
                 .Include(a => a.Author)
+                .Include(a => a.Comments)
+                .Include(a => a.Likes)
                 .Include(a => a.ArticleCategories)
                     .ThenInclude(ac => ac.Category)
                 .Include(a => a.ArticleTags)
@@ -54,6 +56,8 @@ namespace NewsPortal.Infrastructure.Data.Repositories
         {
             return await _context.Articles
                 .Include(a => a.Author)
+                .Include(a => a.Comments)
+                .Include(a => a.Likes)
                 .Include(a => a.ArticleCategories)
                     .ThenInclude(ac => ac.Category)
                 .Include(a => a.ArticleTags)
@@ -96,6 +100,10 @@ namespace NewsPortal.Infrastructure.Data.Repositories
                 .Include(ac => ac.Article)
                     .ThenInclude(a => a.Author)
                 .Include(ac => ac.Article)
+                    .ThenInclude(a => a.Comments)
+                .Include(ac => ac.Article)
+                    .ThenInclude(a => a.Likes)
+                .Include(ac => ac.Article)
                     .ThenInclude(a => a.ArticleCategories)
                         .ThenInclude(ac => ac.Category)
                 .Include(ac => ac.Article)
@@ -115,6 +123,10 @@ namespace NewsPortal.Infrastructure.Data.Repositories
                 .Include(at => at.Article)
                     .ThenInclude(a => a.Author)
                 .Include(at => at.Article)
+                    .ThenInclude(a => a.Comments)
+                .Include(at => at.Article)
+                    .ThenInclude(a => a.Likes)
+                .Include(at => at.Article)
                     .ThenInclude(a => a.ArticleCategories)
                         .ThenInclude(ac => ac.Category)
                 .Include(at => at.Article)
@@ -131,6 +143,8 @@ namespace NewsPortal.Infrastructure.Data.Repositories
         {
             return await _context.Articles
                 .Include(a => a.Author)
+                .Include(a => a.Comments)
+                .Include(a => a.Likes)
                 .Include(a => a.ArticleCategories)
                     .ThenInclude(ac => ac.Category)
                 .Include(a => a.ArticleTags)
