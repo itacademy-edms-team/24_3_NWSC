@@ -151,8 +151,7 @@ const CreateArticlePage: React.FC = () => {
     try {
       const articleData: CreateArticleDto = {
         ...formData,
-        images: selectedImages,
-        image: selectedImages[0] // Для обратной совместимости
+        images: selectedImages
       };
       
       const article = await createArticle(articleData);

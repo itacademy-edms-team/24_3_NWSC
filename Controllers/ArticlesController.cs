@@ -65,7 +65,7 @@ namespace NewsPortal.Controllers
                 Console.WriteLine($"Creating article with AuthorId: {createArticleDto.AuthorId}");
                 Console.WriteLine($"Categories: {string.Join(", ", createArticleDto.CategoryIds)}");
                 Console.WriteLine($"Tags: {string.Join(", ", createArticleDto.TagIds)}");
-                Console.WriteLine($"Image: {createArticleDto.Image?.FileName ?? "No image"}");
+                Console.WriteLine($"Images count: {createArticleDto.Images?.Count ?? 0}");
                 
                 var article = await _articleService.CreateArticleAsync(createArticleDto);
                 return CreatedAtAction(nameof(GetArticle), new { id = article.Id }, article);

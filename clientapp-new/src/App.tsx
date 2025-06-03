@@ -7,6 +7,7 @@ import './App.css';
 // Компоненты
 import Header from './components/Header';
 import Footer from './components/Footer';
+import AdminRoute from './components/AdminRoute';
 
 // Страницы
 import {
@@ -24,6 +25,12 @@ import {
   TagsPage,
   ApiDebugPage
 } from './pages';
+
+// Админ страницы
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
+import ArticleModeration from './pages/admin/ArticleModeration';
+import CommentModeration from './pages/admin/CommentModeration';
 
 function App() {
   return (
@@ -46,6 +53,13 @@ function App() {
             <Route path="/categories/:id" element={<CategoriesPage />} />
             <Route path="/tags" element={<TagsPage />} />
             <Route path="/tags/:id" element={<TagsPage />} />
+            
+            {/* Защищенные админ маршруты */}
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="/admin/articles" element={<AdminRoute><ArticleModeration /></AdminRoute>} />
+            <Route path="/admin/comments" element={<AdminRoute><CommentModeration /></AdminRoute>} />
+            
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Container>

@@ -1,6 +1,21 @@
 import api from './api';
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '../types/models';
 
+// Функция для декодирования JWT токена
+const decodeJWT = (token: string) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Ошибка декодирования JWT:', error);
+    return null;
+  }
+};
+
 export const authService = {
   // Авторизация пользователя
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
@@ -11,6 +26,16 @@ export const authService = {
       
       // Сохраняем токен в localStorage
       localStorage.setItem('token', response.data.token);
+      
+      // Декодируем токен для извлечения ролей
+      const decodedToken = decodeJWT(response.data.token);
+      if (decodedToken) {
+        // Извлекаем роли из токена
+        const roles = decodedToken.role || decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || [];
+        const roleArray = Array.isArray(roles) ? roles : [roles];
+        localStorage.setItem('user_roles', JSON.stringify(roleArray));
+        console.log('Роли пользователя:', roleArray);
+      }
       
       // Сохраняем данные пользователя
       if (response.data.user) {
@@ -75,6 +100,25 @@ export const authService = {
       console.error('Ошибка при чтении данных пользователя из localStorage:', error);
       return null;
     }
+  },
+
+  // Получить роли текущего пользователя
+  getCurrentUserRoles: (): string[] => {
+    const rolesJson = localStorage.getItem('user_roles');
+    if (!rolesJson) return [];
+    
+    try {
+      return JSON.parse(rolesJson);
+    } catch (error) {
+      console.error('Ошибка при чтении ролей пользователя из localStorage:', error);
+      return [];
+    }
+  },
+
+  // Проверить, является ли пользователь администратором
+  isAdmin: (): boolean => {
+    const roles = authService.getCurrentUserRoles();
+    return roles.includes('Admin');
   },
 
   // Сохранить данные пользователя

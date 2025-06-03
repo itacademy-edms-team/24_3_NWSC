@@ -38,11 +38,6 @@ export const createArticle = async (article: CreateArticleDto): Promise<Article>
     });
   }
   
-  // Для обратной совместимости добавляем одиночное изображение
-  if (article.image) {
-    formData.append('image', article.image);
-  }
-  
   const response = await api.post<Article>('/Articles', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -72,11 +67,6 @@ export const updateArticle = async (id: number, article: UpdateArticleDto): Prom
     article.images.forEach((image) => {
       formData.append('images', image);
     });
-  }
-  
-  // Для обратной совместимости добавляем одиночное изображение
-  if (article.image) {
-    formData.append('image', article.image);
   }
   
   const response = await api.put<Article>(`/Articles/${id}`, formData, {

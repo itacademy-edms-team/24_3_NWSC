@@ -17,8 +17,7 @@ const EditArticlePage: React.FC = () => {
     content: '',
     categoryIds: [],
     tagIds: [],
-    images: [],
-    image: undefined
+    images: []
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -69,8 +68,7 @@ const EditArticlePage: React.FC = () => {
           content: articleData.content.replace(/<br>/g, '\n'), // Конвертируем HTML переносы обратно в текстовые
           categoryIds: articleData.categories.map(c => c.id),
           tagIds: articleData.tags.map(t => t.id),
-          images: [],
-          image: undefined
+          images: []
         });
         
         // Устанавливаем текущее изображение
@@ -155,8 +153,7 @@ const EditArticlePage: React.FC = () => {
     try {
       const updateData: UpdateArticleDto = {
         ...formData,
-        images: selectedImage ? [selectedImage] : [],
-        image: selectedImage || undefined
+        images: selectedImage ? [selectedImage] : []
       };
       
       await updateArticle(parseInt(id, 10), updateData);

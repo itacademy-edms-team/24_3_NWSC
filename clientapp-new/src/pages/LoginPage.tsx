@@ -72,8 +72,15 @@ const LoginPage: React.FC = () => {
         // Подробная информация об ошибке для отладки
         debugMessage = `Статус: ${error.response.status}\nДанные: ${JSON.stringify(error.response.data, null, 2)}`;
         
+        // Специальная обработка блокировки пользователя
+        if (error.response.data && error.response.data.IsBlocked) {
+          errorMessage = error.response.data.Message || 'Ваш аккаунт заблокирован администратором';
+          if (error.response.data.BlockReason) {
+            errorMessage += '\n' + error.response.data.BlockReason;
+          }
+        }
         // Попытка получить сообщение об ошибке из ответа сервера
-        if (error.response.data) {
+        else if (error.response.data) {
           if (typeof error.response.data === 'string') {
             errorMessage = error.response.data;
           } else if (error.response.data.message) {

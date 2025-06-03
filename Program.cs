@@ -118,6 +118,7 @@ builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<LikeService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<AdminService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -170,6 +171,7 @@ app.Map("/api/health", appBuilder =>
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roles = new[] { "Admin", "User" };
 
     foreach (var role in roles)
@@ -177,6 +179,40 @@ using (var scope = app.Services.CreateScope())
         if (!await roleManager.RoleExistsAsync(role))
         {
             await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+    
+    // Создаем администратора по умолчанию, если его нет
+    var adminEmail = "admin@newsportal.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    
+    if (adminUser == null)
+    {
+        adminUser = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            FirstName = "Администратор",
+            LastName = "Системы",
+            EmailConfirmed = true,
+            RegisterDate = DateTime.UtcNow,
+            IsBlocked = false
+        };
+        
+        var result = await userManager.CreateAsync(adminUser, "Admin123!");
+        
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+            Console.WriteLine($"Создан пользователь-администратор: {adminEmail} с паролем: Admin123!");
+        }
+        else
+        {
+            Console.WriteLine("Ошибка создания администратора:");
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($"- {error.Description}");
+            }
         }
     }
 }

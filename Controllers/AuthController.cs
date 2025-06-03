@@ -65,6 +65,20 @@ namespace NewsPortal.Controllers
             var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                // Проверяем, заблокирован ли пользователь
+                if (user.IsBlocked)
+                {
+                    var blockReason = !string.IsNullOrEmpty(user.BlockReason) 
+                        ? user.BlockReason 
+                        : "Аккаунт заблокирован администратором. Обратитесь в службу поддержки для получения дополнительной информации.";
+                        
+                    return BadRequest(new { 
+                        Message = "Ваш аккаунт заблокирован администратором",
+                        IsBlocked = true,
+                        BlockReason = blockReason
+                    });
+                }
+
                 var token = GenerateJwtToken(user);
                 return Ok(new { 
                     Token = token,

@@ -8,5 +8,6 @@ namespace NewsPortal.Domain.Entities
         public string LastName { get; set; } = string.Empty;
         public DateTime RegisterDate { get; set; }
         public bool IsBlocked { get; set; }
+        public string? BlockReason { get; set; }
     }
 }

@@ -7,7 +7,8 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const isAuthenticated = authService.isAuthenticated();
   const currentUser = authService.getCurrentUser();
-
+  const isAdmin = authService.isAdmin();
+  
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -31,12 +32,18 @@ const Header: React.FC = () => {
             {isAuthenticated && (
               <Nav.Link as={Link} to="/create-article">Создать статью</Nav.Link>
             )}
+            {isAuthenticated && isAdmin && (
+              <Nav.Link as={Link} to="/admin" className="text-warning">
+                <i className="bi bi-gear"></i> Админ панель
+              </Nav.Link>
+            )}
           </Nav>
           <Nav>
             {isAuthenticated ? (
               <>
                 <Navbar.Text className="me-2">
                   Привет, {currentUser?.firstName || 'Пользователь'}!
+                  {isAdmin && <span className="badge bg-warning text-dark ms-1">Admin</span>}
                 </Navbar.Text>
                 <Button variant="outline-light" onClick={handleLogout}>Выход</Button>
               </>

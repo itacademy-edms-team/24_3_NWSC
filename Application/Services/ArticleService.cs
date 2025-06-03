@@ -113,7 +113,7 @@ namespace NewsPortal.Application.Services
             // Обработка загрузки изображений
             var imagePaths = new List<string>();
             
-            // Обрабатываем новый массив изображений
+            // Обрабатываем массив изображений
             if (createArticleDto.Images != null && createArticleDto.Images.Count > 0)
             {
                 foreach (var image in createArticleDto.Images)
@@ -123,16 +123,6 @@ namespace NewsPortal.Application.Services
                     {
                         imagePaths.Add(imagePath);
                     }
-                }
-            }
-            
-            // Для обратной совместимости обрабатываем одиночное изображение
-            if (createArticleDto.Image != null)
-            {
-                var imagePath = await SaveImageAsync(createArticleDto.Image);
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    imagePaths.Add(imagePath);
                 }
             }
 
@@ -177,17 +167,50 @@ namespace NewsPortal.Application.Services
                 return null;
             }
 
-            // Обработка загрузки нового изображения
-            if (updateArticleDto.Image != null)
+            // Обработка загрузки новых изображений
+            if (updateArticleDto.Images != null && updateArticleDto.Images.Count > 0)
             {
-                // Удаляем старое изображение если оно есть
-                if (!string.IsNullOrEmpty(article.ImagePath))
+                // Удаляем старые изображения если они есть
+                if (!string.IsNullOrEmpty(article.ImagePaths))
+                {
+                    try
+                    {
+                        var oldImagePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(article.ImagePaths);
+                        if (oldImagePaths != null)
+                        {
+                            foreach (var oldImagePath in oldImagePaths)
+                            {
+                                await DeleteImageAsync(oldImagePath);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Если не удалось десериализовать, пробуем удалить как одиночный путь
+                        if (!string.IsNullOrEmpty(article.ImagePath))
+                        {
+                            await DeleteImageAsync(article.ImagePath);
+                        }
+                    }
+                }
+                else if (!string.IsNullOrEmpty(article.ImagePath))
                 {
                     await DeleteImageAsync(article.ImagePath);
                 }
                 
-                // Сохраняем новое изображение
-                article.ImagePath = await SaveImageAsync(updateArticleDto.Image);
+                // Сохраняем новые изображения
+                var imagePaths = new List<string>();
+                foreach (var image in updateArticleDto.Images)
+                {
+                    var imagePath = await SaveImageAsync(image);
+                    if (!string.IsNullOrEmpty(imagePath))
+                    {
+                        imagePaths.Add(imagePath);
+                    }
+                }
+                
+                article.ImagePaths = imagePaths.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(imagePaths) : null;
+                article.ImagePath = imagePaths.FirstOrDefault(); // Для обратной совместимости
             }
 
             article.Title = updateArticleDto.Title;

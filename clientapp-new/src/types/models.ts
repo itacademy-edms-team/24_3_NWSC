@@ -41,7 +41,6 @@ export interface CreateArticleDto {
   categoryIds: number[];
   tagIds: number[];
   images: File[];
-  image?: File;
 }
 
 export interface UpdateArticleDto {
@@ -50,7 +49,6 @@ export interface UpdateArticleDto {
   categoryIds: number[];
   tagIds: number[];
   images: File[];
-  image?: File;
 }
 
 export interface User {

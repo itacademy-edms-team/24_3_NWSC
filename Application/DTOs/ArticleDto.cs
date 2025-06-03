@@ -28,7 +28,6 @@ namespace NewsPortal.Application.DTOs
         public List<int> CategoryIds { get; set; } = new List<int>();
         public List<int> TagIds { get; set; } = new List<int>();
         public List<IFormFile> Images { get; set; } = new List<IFormFile>();
-        public IFormFile? Image { get; set; }
     }
 
     public class UpdateArticleDto
@@ -38,7 +37,6 @@ namespace NewsPortal.Application.DTOs
         public List<int> CategoryIds { get; set; } = new List<int>();
         public List<int> TagIds { get; set; } = new List<int>();
         public List<IFormFile> Images { get; set; } = new List<IFormFile>();
-        public IFormFile? Image { get; set; }
     }
 
     public class ArticleListDto
