@@ -7,6 +7,9 @@ import LikeButton from '../components/LikeButton';
 import CommentSection from '../components/CommentSection';
 import { authService } from '../services/authService';
 import ApiDebugButton from '../components/ApiDebugButton';
+import ImageModal from '../components/ImageModal';
+import ImageGalleryModal from '../components/ImageGalleryModal';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +18,8 @@ const ArticleDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   // Проверка, является ли текущий пользователь автором статьи
   const isAuthor = article?.authorId === localStorage.getItem('userId');
@@ -28,6 +33,15 @@ const ArticleDetailPage: React.FC = () => {
         const data = await getArticleById(parseInt(id, 10));
         setArticle(data);
         setError(null);
+        
+        // Отладочная информация для изображений
+        if (data.imagePath) {
+          console.log('Article loaded with image:', {
+            articleId: data.id,
+            imagePath: data.imagePath,
+            imageUrl: getImageUrl(data.imagePath)
+          });
+        }
       } catch (error) {
         console.error('Error fetching article:', error);
         setError('Не удалось загрузить статью. Проверьте ID или попробуйте позже.');
@@ -70,6 +84,22 @@ const ArticleDetailPage: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
+  };
+
+  const handleImageClick = (index: number = 0) => {
+    setSelectedImageIndex(index);
+    setShowImageModal(true);
+  };
+
+  // Получаем все изображения для модального окна
+  const getAllImages = (): string[] => {
+    if (article?.imagePaths && article.imagePaths.length > 0) {
+      return article.imagePaths;
+    }
+    if (article?.imagePath) {
+      return [article.imagePath];
+    }
+    return [];
   };
 
   if (loading) {
@@ -165,6 +195,64 @@ const ArticleDetailPage: React.FC = () => {
           
           <hr className="my-4" />
           
+          {/* Отображение изображений статьи */}
+          {((article.imagePaths && article.imagePaths.length > 0) || article.imagePath) && (
+            <div className="article-images mb-4">
+              {/* Отображаем новые множественные изображения */}
+              {article.imagePaths && article.imagePaths.length > 0 && (
+                <div className="row">
+                  {article.imagePaths.map((imagePath, index) => (
+                    <div key={index} className="col-md-6 col-lg-4 mb-3">
+                      <div className="article-image">
+                        <img
+                          src={getImageUrl(imagePath) || ''}
+                          alt={`${article.title} - изображение ${index + 1}`}
+                          className="img-fluid rounded shadow"
+                          style={{ 
+                            width: '100%',
+                            height: '250px',
+                            objectFit: 'cover',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleImageClick(index)}
+                          title="Кликните для просмотра в полном размере"
+                          onError={(e) => {
+                            console.error('Ошибка загрузки изображения:', imagePath);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Для обратной совместимости отображаем одиночное изображение, если нет множественных */}
+              {(!article.imagePaths || article.imagePaths.length === 0) && article.imagePath && (
+                <div className="article-image">
+                  <img
+                    src={getImageUrl(article.imagePath) || ''}
+                    alt={article.title}
+                    className="img-fluid rounded shadow"
+                    style={{ 
+                      maxWidth: '100%', 
+                      height: 'auto',
+                      maxHeight: '600px',
+                      objectFit: 'contain',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleImageClick()}
+                    title="Кликните для просмотра в полном размере"
+                    onError={(e) => {
+                      console.error('Ошибка загрузки изображения:', article.imagePath);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="article-content" dangerouslySetInnerHTML={{ __html: article.content }} />
           
           {isAuthor && (
@@ -186,6 +274,17 @@ const ArticleDetailPage: React.FC = () => {
       
       {/* Секция комментариев */}
       <CommentSection articleId={article.id} />
+      
+      {/* Модальное окно для просмотра изображения */}
+      {article && getAllImages().length > 0 && (
+        <ImageGalleryModal
+          show={showImageModal}
+          onHide={() => setShowImageModal(false)}
+          images={getAllImages()}
+          title={article.title}
+          initialIndex={selectedImageIndex}
+        />
+      )}
       
       {/* Модальное окно подтверждения удаления */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>

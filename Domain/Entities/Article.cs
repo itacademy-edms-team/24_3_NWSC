@@ -17,6 +17,13 @@ namespace NewsPortal.Domain.Entities
         // Счетчик просмотров
         public int ViewCount { get; set; } = 0;
         
+        // Пути к изображениям статьи (JSON массив)
+        public string? ImagePaths { get; set; }
+        
+        // Оставляем для обратной совместимости, но помечаем как устаревшее
+        [Obsolete("Use ImagePaths instead")]
+        public string? ImagePath { get; set; }
+        
         public ICollection<ArticleCategory> ArticleCategories { get; set; } = new List<ArticleCategory>();
         public ICollection<ArticleTag> ArticleTags { get; set; } = new List<ArticleTag>();
         

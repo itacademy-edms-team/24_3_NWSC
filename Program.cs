@@ -192,6 +192,9 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+// Добавляем поддержку статических файлов для изображений
+app.UseStaticFiles();
+
 // Используем аутентификацию и авторизацию в правильном порядке
 app.UseHttpsRedirection();
 app.UseRouting();

@@ -7,6 +7,8 @@ export interface Article {
   authorId: string;
   authorName: string;
   viewCount: number;
+  imagePaths: string[];
+  imagePath?: string;
   categories: Category[];
   tags: Tag[];
   likeCount: number;
@@ -38,6 +40,8 @@ export interface CreateArticleDto {
   authorId: string;
   categoryIds: number[];
   tagIds: number[];
+  images: File[];
+  image?: File;
 }
 
 export interface UpdateArticleDto {
@@ -45,6 +49,8 @@ export interface UpdateArticleDto {
   content: string;
   categoryIds: number[];
   tagIds: number[];
+  images: File[];
+  image?: File;
 }
 
 export interface User {

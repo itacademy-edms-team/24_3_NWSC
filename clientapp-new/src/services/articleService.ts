@@ -16,13 +16,74 @@ export const getArticleById = async (id: number): Promise<Article> => {
 
 // Создать новую статью
 export const createArticle = async (article: CreateArticleDto): Promise<Article> => {
-  const response = await api.post<Article>('/Articles', article);
+  const formData = new FormData();
+  formData.append('title', article.title);
+  formData.append('content', article.content);
+  formData.append('authorId', article.authorId);
+  
+  // Добавляем категории
+  article.categoryIds.forEach((categoryId) => {
+    formData.append('categoryIds', categoryId.toString());
+  });
+  
+  // Добавляем теги
+  article.tagIds.forEach((tagId) => {
+    formData.append('tagIds', tagId.toString());
+  });
+  
+  // Добавляем множественные изображения
+  if (article.images && article.images.length > 0) {
+    article.images.forEach((image) => {
+      formData.append('images', image);
+    });
+  }
+  
+  // Для обратной совместимости добавляем одиночное изображение
+  if (article.image) {
+    formData.append('image', article.image);
+  }
+  
+  const response = await api.post<Article>('/Articles', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 
 // Обновить существующую статью
 export const updateArticle = async (id: number, article: UpdateArticleDto): Promise<Article> => {
-  const response = await api.put<Article>(`/Articles/${id}`, article);
+  const formData = new FormData();
+  formData.append('title', article.title);
+  formData.append('content', article.content);
+  
+  // Добавляем категории
+  article.categoryIds.forEach((categoryId) => {
+    formData.append('categoryIds', categoryId.toString());
+  });
+  
+  // Добавляем теги
+  article.tagIds.forEach((tagId) => {
+    formData.append('tagIds', tagId.toString());
+  });
+  
+  // Добавляем множественные изображения
+  if (article.images && article.images.length > 0) {
+    article.images.forEach((image) => {
+      formData.append('images', image);
+    });
+  }
+  
+  // Для обратной совместимости добавляем одиночное изображение
+  if (article.image) {
+    formData.append('image', article.image);
+  }
+  
+  const response = await api.put<Article>(`/Articles/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

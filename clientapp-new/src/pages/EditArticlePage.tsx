@@ -6,6 +6,7 @@ import { Article, Category, Tag, UpdateArticleDto } from '../types/models';
 import { authService } from '../services/authService';
 import { categoryService } from '../services/categoryService';
 import { tagService } from '../services/tagService';
+import { getImageUrl } from '../utils/imageUtils';
 
 const EditArticlePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,8 +16,13 @@ const EditArticlePage: React.FC = () => {
     title: '',
     content: '',
     categoryIds: [],
-    tagIds: []
+    tagIds: [],
+    images: [],
+    image: undefined
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [currentImagePath, setCurrentImagePath] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,10 +66,17 @@ const EditArticlePage: React.FC = () => {
         // Заполняем форму данными статьи
         setFormData({
           title: articleData.title,
-          content: articleData.content,
+          content: articleData.content.replace(/<br>/g, '\n'), // Конвертируем HTML переносы обратно в текстовые
           categoryIds: articleData.categories.map(c => c.id),
-          tagIds: articleData.tags.map(t => t.id)
+          tagIds: articleData.tags.map(t => t.id),
+          images: [],
+          image: undefined
         });
+        
+        // Устанавливаем текущее изображение
+        if (articleData.imagePath) {
+          setCurrentImagePath(articleData.imagePath);
+        }
         
         setLoadingData(false);
       } catch (error) {
@@ -91,6 +104,46 @@ const EditArticlePage: React.FC = () => {
     setFormData(prev => ({ ...prev, tagIds: selectedOptions }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Проверяем размер файла (максимум 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB в байтах
+      if (file.size > maxSize) {
+        setError('Размер файла не должен превышать 5MB');
+        e.target.value = ''; // Очищаем input
+        return;
+      }
+      
+      // Проверяем тип файла
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Поддерживаются только изображения в форматах: JPEG, PNG, GIF, WebP');
+        e.target.value = ''; // Очищаем input
+        return;
+      }
+      
+      setSelectedImage(file);
+      setError(null); // Сбрасываем ошибку если файл корректный
+      
+      // Создаем предварительный просмотр
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setSelectedImage(null);
+      setImagePreview(null);
+    }
+  };
+
+  const removeCurrentImage = () => {
+    setCurrentImagePath(null);
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -100,7 +153,13 @@ const EditArticlePage: React.FC = () => {
     setLoading(true);
 
     try {
-      await updateArticle(parseInt(id, 10), formData);
+      const updateData: UpdateArticleDto = {
+        ...formData,
+        images: selectedImage ? [selectedImage] : [],
+        image: selectedImage || undefined
+      };
+      
+      await updateArticle(parseInt(id, 10), updateData);
       navigate(`/articles/${id}`);
     } catch (error: any) {
       console.error('Ошибка обновления статьи:', error);
@@ -154,6 +213,58 @@ const EditArticlePage: React.FC = () => {
               />
             </Form.Group>
             
+            <Form.Group className="mb-3" controlId="image">
+              <Form.Label>Изображение статьи</Form.Label>
+              
+              {currentImagePath && !imagePreview && (
+                <div className="mb-2">
+                  <p className="text-muted">Текущее изображение:</p>
+                  <div className="position-relative d-inline-block">
+                    <img
+                      src={getImageUrl(currentImagePath) || ''}
+                      alt="Текущее изображение"
+                      style={{ maxWidth: '300px', maxHeight: '200px', objectFit: 'cover' }}
+                      className="img-thumbnail"
+                      onError={(e) => {
+                        console.error('Ошибка загрузки текущего изображения:', currentImagePath);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="position-absolute top-0 end-0"
+                      onClick={removeCurrentImage}
+                      style={{ transform: 'translate(50%, -50%)' }}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+              <Form.Text className="text-muted">
+                Выберите новое изображение для замены текущего (необязательно)
+              </Form.Text>
+              
+              {imagePreview && (
+                <div className="mt-2">
+                  <p className="text-muted">Новое изображение:</p>
+                  <img
+                    src={imagePreview}
+                    alt="Предварительный просмотр"
+                    style={{ maxWidth: '300px', maxHeight: '200px', objectFit: 'cover' }}
+                    className="img-thumbnail"
+                  />
+                </div>
+              )}
+            </Form.Group>
+            
             <Form.Group className="mb-3" controlId="content">
               <Form.Label>Содержание статьи</Form.Label>
               <Form.Control
@@ -163,8 +274,11 @@ const EditArticlePage: React.FC = () => {
                 onChange={handleChange}
                 required
                 rows={10}
-                placeholder="Введите текст статьи"
+                placeholder="Введите текст статьи&#10;&#10;Переносы строк будут сохранены в итоговой статье"
               />
+              <Form.Text className="text-muted">
+                Переносы строк будут отображаться в статье как есть
+              </Form.Text>
             </Form.Group>
             
             <Form.Group className="mb-3" controlId="categories">

@@ -45,7 +45,7 @@ namespace NewsPortal.Controllers
         // POST: api/Articles
         [HttpPost]
         [Authorize]
-        public async Task<ActionResult<ArticleDto>> CreateArticle(CreateArticleDto createArticleDto)
+        public async Task<ActionResult<ArticleDto>> CreateArticle([FromForm] CreateArticleDto createArticleDto)
         {
             try
             {
@@ -65,6 +65,7 @@ namespace NewsPortal.Controllers
                 Console.WriteLine($"Creating article with AuthorId: {createArticleDto.AuthorId}");
                 Console.WriteLine($"Categories: {string.Join(", ", createArticleDto.CategoryIds)}");
                 Console.WriteLine($"Tags: {string.Join(", ", createArticleDto.TagIds)}");
+                Console.WriteLine($"Image: {createArticleDto.Image?.FileName ?? "No image"}");
                 
                 var article = await _articleService.CreateArticleAsync(createArticleDto);
                 return CreatedAtAction(nameof(GetArticle), new { id = article.Id }, article);
@@ -95,7 +96,7 @@ namespace NewsPortal.Controllers
         // PUT: api/Articles/5
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdateArticle(int id, UpdateArticleDto updateArticleDto)
+        public async Task<IActionResult> UpdateArticle(int id, [FromForm] UpdateArticleDto updateArticleDto)
         {
             // Получаем статью для проверки прав
             var existingArticle = await _articleService.GetArticleByIdAsync(id);

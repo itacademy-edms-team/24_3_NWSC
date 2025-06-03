@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 using NewsPortal.Application.DTOs;
 using NewsPortal.Domain.Entities;
 using NewsPortal.Infrastructure.Data.Repositories;
+using System.Text.Json;
 
 namespace NewsPortal.Application.Services
 {
@@ -13,11 +17,13 @@ namespace NewsPortal.Application.Services
     {
         private readonly ArticleRepository _articleRepository;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IWebHostEnvironment _environment;
 
-        public ArticleService(ArticleRepository articleRepository, UserManager<ApplicationUser> userManager)
+        public ArticleService(ArticleRepository articleRepository, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
         {
             _articleRepository = articleRepository;
             _userManager = userManager;
+            _environment = environment;
         }
 
         public async Task<ArticleListDto> GetAllArticlesAsync(int page = 1, int pageSize = 10, string searchTerm = null)
@@ -104,12 +110,43 @@ namespace NewsPortal.Application.Services
                 }
             }
 
+            // Обработка загрузки изображений
+            var imagePaths = new List<string>();
+            
+            // Обрабатываем новый массив изображений
+            if (createArticleDto.Images != null && createArticleDto.Images.Count > 0)
+            {
+                foreach (var image in createArticleDto.Images)
+                {
+                    var imagePath = await SaveImageAsync(image);
+                    if (!string.IsNullOrEmpty(imagePath))
+                    {
+                        imagePaths.Add(imagePath);
+                    }
+                }
+            }
+            
+            // Для обратной совместимости обрабатываем одиночное изображение
+            if (createArticleDto.Image != null)
+            {
+                var imagePath = await SaveImageAsync(createArticleDto.Image);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    imagePaths.Add(imagePath);
+                }
+            }
+
+            // Конвертируем переносы строк в HTML
+            string htmlContent = ConvertTextToHtml(createArticleDto.Content);
+
             var article = new Article
             {
                 Title = createArticleDto.Title,
-                Content = createArticleDto.Content,
+                Content = htmlContent,
                 AuthorId = user.Id,
-                Author = user
+                Author = user,
+                ImagePaths = imagePaths.Count > 0 ? JsonSerializer.Serialize(imagePaths) : null,
+                ImagePath = imagePaths.FirstOrDefault() // Для обратной совместимости
             };
 
             foreach (var categoryId in createArticleDto.CategoryIds)
@@ -140,8 +177,21 @@ namespace NewsPortal.Application.Services
                 return null;
             }
 
+            // Обработка загрузки нового изображения
+            if (updateArticleDto.Image != null)
+            {
+                // Удаляем старое изображение если оно есть
+                if (!string.IsNullOrEmpty(article.ImagePath))
+                {
+                    await DeleteImageAsync(article.ImagePath);
+                }
+                
+                // Сохраняем новое изображение
+                article.ImagePath = await SaveImageAsync(updateArticleDto.Image);
+            }
+
             article.Title = updateArticleDto.Title;
-            article.Content = updateArticleDto.Content;
+            article.Content = ConvertTextToHtml(updateArticleDto.Content);
 
             // Update categories
             article.ArticleCategories.Clear();
@@ -249,6 +299,20 @@ namespace NewsPortal.Application.Services
                 }
             }
             
+            // Десериализуем пути изображений
+            var imagePaths = new List<string>();
+            if (!string.IsNullOrEmpty(article.ImagePaths))
+            {
+                try
+                {
+                    imagePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(article.ImagePaths) ?? new List<string>();
+                }
+                catch
+                {
+                    imagePaths = new List<string>();
+                }
+            }
+            
             return new ArticleDto
             {
                 Id = article.Id,
@@ -259,6 +323,8 @@ namespace NewsPortal.Application.Services
                 AuthorId = article.AuthorId ?? "",
                 AuthorName = authorName,
                 ViewCount = article.ViewCount,
+                ImagePaths = imagePaths,
+                ImagePath = article.ImagePath,
                 Categories = article.ArticleCategories?
                     .Where(ac => ac.Category != null)
                     .Select(ac => new CategoryDto
@@ -277,6 +343,68 @@ namespace NewsPortal.Application.Services
                     })
                     .ToList() ?? new List<TagDto>()
             };
+        }
+
+        private async Task<string> SaveImageAsync(IFormFile image)
+        {
+            if (image == null || image.Length == 0)
+                return null;
+
+            // Валидация типа файла
+            var allowedContentTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+            if (!allowedContentTypes.Contains(image.ContentType.ToLower()))
+            {
+                throw new ArgumentException("Поддерживаются только изображения в форматах: JPEG, PNG, GIF, WebP");
+            }
+
+            // Валидация размера файла (максимум 5MB)
+            const int maxFileSize = 5 * 1024 * 1024; // 5MB
+            if (image.Length > maxFileSize)
+            {
+                throw new ArgumentException("Размер файла не должен превышать 5MB");
+            }
+
+            // Создаем папку для загрузки если её нет
+            var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "articles");
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            // Генерируем уникальное имя файла
+            var fileExtension = Path.GetExtension(image.FileName);
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            // Сохраняем файл
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            // Возвращаем относительный путь
+            return $"/uploads/articles/{fileName}";
+        }
+
+        private async Task DeleteImageAsync(string imagePath)
+        {
+            if (string.IsNullOrEmpty(imagePath))
+                return;
+
+            var fullPath = Path.Combine(_environment.WebRootPath, imagePath.TrimStart('/'));
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+        }
+
+        private string ConvertTextToHtml(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            // Заменяем переносы строк на HTML теги
+            return text.Replace("\r\n", "<br>").Replace("\n", "<br>").Replace("\r", "<br>");
         }
     }
 } 
