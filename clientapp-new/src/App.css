@@ -389,3 +389,125 @@
 [data-theme="dark"] .card-title a:hover {
   color: #fff !important;
 }
+
+/* Стили для кнопок навигации карусели в галерее */
+.image-gallery-modal .carousel-control-prev,
+.image-gallery-modal .carousel-control-next {
+  width: 5% !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 8px !important;
+  margin: auto 10px !important;
+  height: 50px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  transition: all 0.3s ease !important;
+}
+
+.image-gallery-modal .carousel-control-prev:hover,
+.image-gallery-modal .carousel-control-next:hover {
+  background: rgba(0, 0, 0, 0.6) !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+.image-gallery-modal .carousel-control-prev-icon,
+.image-gallery-modal .carousel-control-next-icon {
+  background-size: 20px 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Добавляем тень для лучшей видимости */
+.image-gallery-modal .carousel-control-prev-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z'/%3e%3c/svg%3e") !important;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.8)) !important;
+}
+
+.image-gallery-modal .carousel-control-next-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z'/%3e%3c/svg%3e") !important;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.8)) !important;
+}
+
+/* Стили для индикаторов карусели */
+.image-gallery-modal .carousel-indicators {
+  bottom: 10px !important;
+}
+
+.image-gallery-modal .carousel-indicators [data-bs-target] {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  border: 2px solid rgba(0, 0, 0, 0.3) !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  margin: 0 4px !important;
+  transition: all 0.3s ease !important;
+}
+
+.image-gallery-modal .carousel-indicators .active {
+  background-color: #fff !important;
+  border-color: rgba(0, 0, 0, 0.6) !important;
+  transform: scale(1.2) !important;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .image-gallery-modal .carousel-control-prev,
+  .image-gallery-modal .carousel-control-next {
+    width: 8% !important;
+    height: 40px !important;
+    margin: auto 5px !important;
+  }
+  
+  .image-gallery-modal .carousel-control-prev-icon,
+  .image-gallery-modal .carousel-control-next-icon {
+    background-size: 16px 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+/* Стили для темной темы галереи */
+[data-theme="dark"] .image-gallery-modal .modal-content {
+  background-color: #1e1e1e !important;
+  border: 1px solid #333 !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .modal-header {
+  background-color: #1e1e1e !important;
+  border-bottom: 1px solid #333 !important;
+  color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .modal-footer {
+  background-color: #1e1e1e !important;
+  border-top: 1px solid #333 !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-control-prev,
+[data-theme="dark"] .image-gallery-modal .carousel-control-next {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-control-prev:hover,
+[data-theme="dark"] .image-gallery-modal .carousel-control-next:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-control-prev-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z'/%3e%3c/svg%3e") !important;
+  filter: drop-shadow(1px 1px 2px rgba(255, 255, 255, 0.8)) !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-control-next-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z'/%3e%3c/svg%3e") !important;
+  filter: drop-shadow(1px 1px 2px rgba(255, 255, 255, 0.8)) !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-indicators [data-bs-target] {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .image-gallery-modal .carousel-indicators .active {
+  background-color: #000 !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}

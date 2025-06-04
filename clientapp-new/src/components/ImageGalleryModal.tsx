@@ -28,7 +28,7 @@ const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   }
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered>
+    <Modal show={show} onHide={onHide} size="xl" centered className="image-gallery-modal">
       <Modal.Header closeButton>
         <Modal.Title>
           {title} - Изображение {activeIndex + 1} из {images.length}
@@ -57,6 +57,7 @@ const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
             interval={null}
             indicators={true}
             controls={true}
+            className="image-gallery-carousel"
           >
             {images.map((imagePath, index) => (
               <Carousel.Item key={index}>
