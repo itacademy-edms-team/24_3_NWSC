@@ -21,6 +21,12 @@ export const getArticleById = async (id: number): Promise<Article> => {
   return response.data;
 };
 
+// Получить статью по ID с просмотром
+export const getArticleByIdWithView = async (id: number): Promise<Article> => {
+  const response = await api.get<Article>(`/Articles/${id}/view`);
+  return response.data;
+};
+
 // Создать новую статью
 export const createArticle = async (article: CreateArticleDto): Promise<Article> => {
   const formData = new FormData();
@@ -68,6 +74,13 @@ export const updateArticle = async (id: number, article: UpdateArticleDto): Prom
   article.tagIds.forEach((tagId) => {
     formData.append('tagIds', tagId.toString());
   });
+  
+  // Добавляем пути оставшихся изображений
+  if (article.imagePaths && article.imagePaths.length > 0) {
+    article.imagePaths.forEach((path) => {
+      formData.append('imagePaths', path);
+    });
+  }
   
   // Добавляем множественные изображения
   if (article.images && article.images.length > 0) {

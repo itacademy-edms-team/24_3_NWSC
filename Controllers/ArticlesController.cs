@@ -32,13 +32,19 @@ namespace NewsPortal.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ArticleDto>> GetArticle(int id)
         {
-            var article = await _articleService.GetArticleByIdWithViewAsync(id);
-
+            var article = await _articleService.GetArticleByIdAsync(id);
             if (article == null)
-            {
                 return NotFound();
-            }
+            return Ok(article);
+        }
 
+        // GET: api/Articles/5/view
+        [HttpGet("{id}/view")]
+        public async Task<ActionResult<ArticleDto>> GetArticleWithView(int id)
+        {
+            var article = await _articleService.GetArticleByIdWithViewAsync(id);
+            if (article == null)
+                return NotFound();
             return Ok(article);
         }
 

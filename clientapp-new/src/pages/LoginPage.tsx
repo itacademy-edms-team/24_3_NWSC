@@ -14,6 +14,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [blockReason, setBlockReason] = useState<string | null>(null);
   
   // Получаем URL для перенаправления после успешной авторизации
   const from = location.state?.from?.pathname || '/';
@@ -26,6 +27,7 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setBlockReason(null);
     setDebugInfo(null);
     setLoading(true);
 
@@ -66,31 +68,32 @@ const LoginPage: React.FC = () => {
       let debugMessage = null;
       
       if (error.response) {
-        console.error('Ответ сервера:', error.response.data);
-        console.error('Статус:', error.response.status);
-        
-        // Подробная информация об ошибке для отладки
-        debugMessage = `Статус: ${error.response.status}\nДанные: ${JSON.stringify(error.response.data, null, 2)}`;
-        
-        // Специальная обработка блокировки пользователя
-        if (error.response.data && error.response.data.IsBlocked) {
-          errorMessage = error.response.data.Message || 'Ваш аккаунт заблокирован администратором';
-          if (error.response.data.BlockReason) {
-            errorMessage += '\n' + error.response.data.BlockReason;
-          }
-        }
-        // Попытка получить сообщение об ошибке из ответа сервера
-        else if (error.response.data) {
-          if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
-          } else if (error.response.data.message) {
-            errorMessage = error.response.data.message;
-          } else if (error.response.data.error) {
-            errorMessage = error.response.data.error;
-          }
+        const data = error.response.data;
+        debugMessage = `Статус: ${error.response.status}\nДанные: ${JSON.stringify(data, null, 2)}`;
+
+        // Универсальная обработка причины блокировки
+        const reason = data?.blockReason || data?.BlockReason;
+        if (reason) {
+          setBlockReason(reason);
+          errorMessage = data?.message || data?.Message || 'Ваш аккаунт заблокирован администратором';
+        } else if (data?.IsBlocked || data?.isBlocked) {
+          errorMessage = data?.message || data?.Message || 'Ваш аккаунт заблокирован администратором';
+          setBlockReason(null);
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+          setBlockReason(null);
+        } else if (data?.message) {
+          errorMessage = data.message;
+          setBlockReason(null);
+        } else if (data?.error) {
+          errorMessage = data.error;
+          setBlockReason(null);
+        } else {
+          setBlockReason(null);
         }
       } else if (error.message) {
         errorMessage = `Ошибка: ${error.message}`;
+        setBlockReason(null);
       }
       
       setError(errorMessage);
@@ -108,7 +111,14 @@ const LoginPage: React.FC = () => {
             <Card.Body className="p-4">
               <h2 className="text-center mb-4">Вход в систему</h2>
               
-              {error && <Alert variant="danger">{error}</Alert>}
+              {error && (
+                <Alert variant="danger">
+                  {error}
+                  {blockReason && (
+                    <div className="mt-2"><b>Причина блокировки:</b> {blockReason}</div>
+                  )}
+                </Alert>
+              )}
               
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="email">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Badge, Button, Modal, Container } from 'react-bootstrap';
-import { getArticleById, deleteArticle } from '../services/articleService';
+import { getArticleById, deleteArticle, getArticleByIdWithView } from '../services/articleService';
 import { Article } from '../types/models';
 import LikeButton from '../components/LikeButton';
 import CommentSection from '../components/CommentSection';
@@ -32,7 +32,7 @@ const ArticleDetailPage: React.FC = () => {
 
       try {
         setLoading(true);
-        const data = await getArticleById(parseInt(id, 10));
+        const data = await getArticleByIdWithView(parseInt(id, 10));
         setArticle(data);
         setError(null);
         
