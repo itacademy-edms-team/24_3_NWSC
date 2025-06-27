@@ -170,6 +170,18 @@ app.Map("/api/health", appBuilder =>
 // Добавьте этот код для инициализации ролей
 using (var scope = app.Services.CreateScope())
 {
+    // Автоматическое применение миграций при запуске
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        await context.Database.MigrateAsync();
+        Console.WriteLine("Миграции успешно применены.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ошибка применения миграций: {ex.Message}");
+    }
+    
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roles = new[] { "Admin", "User" };

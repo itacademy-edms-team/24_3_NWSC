@@ -10,6 +10,8 @@ import ApiDebugButton from '../components/ApiDebugButton';
 import ImageModal from '../components/ImageModal';
 import ImageGalleryModal from '../components/ImageGalleryModal';
 import { getImageUrl } from '../utils/imageUtils';
+import WeatherWidget from '../components/WeatherWidget';
+import { CurrencyWidget } from '../components/CurrencyWidget';
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -132,6 +134,10 @@ const ArticleDetailPage: React.FC = () => {
 
   return (
     <Container className="article-detail-page">
+      <div className="d-flex flex-wrap gap-3 mb-3">
+        <WeatherWidget />
+        <CurrencyWidget />
+      </div>
       <Card className="mb-4">
         <Card.Body>
           <h1 className="article-title mb-3">{article.title}</h1>

@@ -5,6 +5,8 @@ import { getArticles, getAllArticlesForFeed } from '../services/articleService';
 import { Article, ArticleList } from '../types/models';
 import ArticleCard from '../components/ArticleCard';
 import ArticleFeedCard from '../components/ArticleFeedCard';
+import { CurrencyWidget } from '../components/CurrencyWidget';
+import WeatherWidget from '../components/WeatherWidget';
 
 type ViewMode = 'grid' | 'feed';
 
@@ -175,55 +177,65 @@ const ArticlesPage: React.FC = () => {
         </InputGroup>
       </Form>
       
-      {loading ? (
-        <div className="text-center py-5">Загрузка...</div>
-      ) : (
-        <>
-          {articles.length === 0 && feedArticles.length === 0 ? (
-            <div className="text-center py-5">
-              <h3>Статьи не найдены</h3>
-              <p>Попробуйте изменить параметры поиска</p>
-            </div>
+      <Row>
+        <Col md={9}>
+          {loading ? (
+            <div className="text-center py-5">Загрузка...</div>
           ) : (
             <>
-              <ButtonGroup className="mb-4">
-                <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'outline-secondary'}
-                  onClick={() => handleViewModeChange('grid')}
-                >
-                  Сеточный режим
-                </Button>
-                <Button
-                  variant={viewMode === 'feed' ? 'secondary' : 'outline-secondary'}
-                  onClick={() => handleViewModeChange('feed')}
-                >
-                  Ленточный режим
-                </Button>
-              </ButtonGroup>
-              
-              {viewMode === 'grid' ? (
-                <>
-                  <Row>
-                    {articles.map(article => (
-                      <Col md={4} key={article.id} className="mb-4">
-                        <ArticleCard article={article} />
-                      </Col>
-                    ))}
-                  </Row>
-                  
-                  {pagination.pageCount > 1 && renderPagination()}
-                </>
+              {articles.length === 0 && feedArticles.length === 0 ? (
+                <div className="text-center py-5">
+                  <h3>Статьи не найдены</h3>
+                  <p>Попробуйте изменить параметры поиска</p>
+                </div>
               ) : (
-                <Container style={{ maxWidth: '800px' }}>
-                  {feedArticles.map(article => (
-                    <ArticleFeedCard key={article.id} article={article} />
-                  ))}
-                </Container>
+                <>
+                  <ButtonGroup className="mb-4">
+                    <Button
+                      variant={viewMode === 'grid' ? 'secondary' : 'outline-secondary'}
+                      onClick={() => handleViewModeChange('grid')}
+                    >
+                      Сеточный режим
+                    </Button>
+                    <Button
+                      variant={viewMode === 'feed' ? 'secondary' : 'outline-secondary'}
+                      onClick={() => handleViewModeChange('feed')}
+                    >
+                      Ленточный режим
+                    </Button>
+                  </ButtonGroup>
+                  
+                  {viewMode === 'grid' ? (
+                    <>
+                      <Row>
+                        {articles.map(article => (
+                          <Col md={4} key={article.id} className="mb-4">
+                            <ArticleCard article={article} />
+                          </Col>
+                        ))}
+                      </Row>
+                      
+                      {pagination.pageCount > 1 && renderPagination()}
+                    </>
+                  ) : (
+                    <Container style={{ maxWidth: '800px' }}>
+                      {feedArticles.map(article => (
+                        <ArticleFeedCard key={article.id} article={article} />
+                      ))}
+                    </Container>
+                  )}
+                </>
               )}
             </>
           )}
-        </>
-      )}
+        </Col>
+        <Col md={3}>
+          <div className="sticky-top" style={{ top: 90 }}>
+            <WeatherWidget />
+            <CurrencyWidget />
+          </div>
+        </Col>
+      </Row>
     </div>
   );
 };

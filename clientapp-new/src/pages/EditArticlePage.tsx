@@ -19,9 +19,9 @@ const EditArticlePage: React.FC = () => {
     tagIds: [],
     images: []
   });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [currentImagePath, setCurrentImagePath] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,10 +71,8 @@ const EditArticlePage: React.FC = () => {
           images: []
         });
         
-        // Устанавливаем текущее изображение
-        if (articleData.imagePath) {
-          setCurrentImagePath(articleData.imagePath);
-        }
+        // Устанавливаем текущие изображения
+        setExistingImages((articleData.imagePaths || []).filter((img: string | null): img is string => !!img));
         
         setLoadingData(false);
       } catch (error) {
@@ -103,59 +101,63 @@ const EditArticlePage: React.FC = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Проверяем размер файла (максимум 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB в байтах
-      if (file.size > maxSize) {
-        setError('Размер файла не должен превышать 5MB');
-        e.target.value = ''; // Очищаем input
-        return;
-      }
-      
-      // Проверяем тип файла
+    const files = Array.from(e.target.files || []);
+    const validFiles: File[] = [];
+    const newPreviews: string[] = [];
+    const maxImages = 5;
+    const totalImages = existingImages.length + selectedImages.length;
+    const remainingSlots = maxImages - totalImages;
+    const filesToProcess = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setError(`Можно загрузить максимум ${maxImages} изображений. Осталось слотов: ${remainingSlots}`);
+    }
+    filesToProcess.forEach((file) => {
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) return setError(`Файл "${file.name}" превышает размер 5MB`);
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Поддерживаются только изображения в форматах: JPEG, PNG, GIF, WebP');
-        e.target.value = ''; // Очищаем input
-        return;
-      }
-      
-      setSelectedImage(file);
-      setError(null); // Сбрасываем ошибку если файл корректный
-      
-      // Создаем предварительный просмотр
+      if (!allowedTypes.includes(file.type)) return setError(`Файл "${file.name}" имеет неподдерживаемый формат.`);
+      validFiles.push(file);
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImagePreview(event.target?.result as string);
+        newPreviews.push(event.target?.result as string);
+        if (newPreviews.length === validFiles.length) {
+          setSelectedImages(prev => [...prev, ...validFiles]);
+          setImagePreviews(prev => [...prev, ...newPreviews]);
+          setError(null);
+        }
       };
       reader.readAsDataURL(file);
-    } else {
-      setSelectedImage(null);
-      setImagePreview(null);
-    }
+    });
+    e.target.value = '';
   };
 
-  const removeCurrentImage = () => {
-    setCurrentImagePath(null);
-    setSelectedImage(null);
-    setImagePreview(null);
+  const removeExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeAllImages = () => {
+    setExistingImages([]);
+    setSelectedImages([]);
+    setImagePreviews([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!id || !article) return;
-    
     setError(null);
     setLoading(true);
-
     try {
       const updateData: UpdateArticleDto = {
         ...formData,
-        images: selectedImage ? [selectedImage] : []
+        images: selectedImages,
+        // Передаем список оставшихся существующих изображений (пути), чтобы сервер мог их сохранить
+        imagePaths: existingImages
       };
-      
       await updateArticle(parseInt(id, 10), updateData);
       navigate(`/articles/${id}`);
     } catch (error: any) {
@@ -210,56 +212,43 @@ const EditArticlePage: React.FC = () => {
               />
             </Form.Group>
             
-            <Form.Group className="mb-3" controlId="image">
-              <Form.Label>Изображение статьи</Form.Label>
-              
-              {currentImagePath && !imagePreview && (
-                <div className="mb-2">
-                  <p className="text-muted">Текущее изображение:</p>
-                  <div className="position-relative d-inline-block">
-                    <img
-                      src={getImageUrl(currentImagePath) || ''}
-                      alt="Текущее изображение"
-                      style={{ maxWidth: '300px', maxHeight: '200px', objectFit: 'cover' }}
-                      className="img-thumbnail"
-                      onError={(e) => {
-                        console.error('Ошибка загрузки текущего изображения:', currentImagePath);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="position-absolute top-0 end-0"
-                      onClick={removeCurrentImage}
-                      style={{ transform: 'translate(50%, -50%)' }}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
+            <Form.Group className="mb-3" controlId="images">
+              <Form.Label>Изображения статьи</Form.Label>
               <Form.Control
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                multiple
               />
               <Form.Text className="text-muted">
-                Выберите новое изображение для замены текущего (необязательно)
+                Выберите изображения для статьи (максимум 5)
               </Form.Text>
-              
-              {imagePreview && (
-                <div className="mt-2">
-                  <p className="text-muted">Новое изображение:</p>
-                  <img
-                    src={imagePreview}
-                    alt="Предварительный просмотр"
-                    style={{ maxWidth: '300px', maxHeight: '200px', objectFit: 'cover' }}
-                    className="img-thumbnail"
-                  />
+              <div className="mt-2">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="text-muted">Текущие изображения:</span>
+                  <Button variant="outline-danger" size="sm" onClick={removeAllImages}>Удалить все</Button>
                 </div>
-              )}
+                <div className="d-flex flex-wrap">
+                  {existingImages.map((img, idx) => (
+                    <div key={img} className="m-2">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-muted">Изображение {idx + 1}:</span>
+                        <Button variant="outline-danger" size="sm" onClick={() => removeExistingImage(idx)}>Удалить</Button>
+                      </div>
+                      <img src={getImageUrl(img) || ''} alt={`Изображение ${idx + 1}`} style={{ maxWidth: '200px', maxHeight: '120px', objectFit: 'cover' }} className="img-thumbnail" />
+                    </div>
+                  ))}
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={preview} className="m-2">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <span className="text-muted">Новое изображение {idx + 1}:</span>
+                        <Button variant="outline-danger" size="sm" onClick={() => removeNewImage(idx)}>Удалить</Button>
+                      </div>
+                      <img src={preview} alt={`Новое изображение ${idx + 1}`} style={{ maxWidth: '200px', maxHeight: '120px', objectFit: 'cover' }} className="img-thumbnail" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </Form.Group>
             
             <Form.Group className="mb-3" controlId="content">

@@ -40,6 +40,7 @@ namespace NewsPortal.Application.DTOs
         public List<int> CategoryIds { get; set; } = new List<int>();
         public List<int> TagIds { get; set; } = new List<int>();
         public List<IFormFile> Images { get; set; } = new List<IFormFile>();
+        public List<string> ImagePaths { get; set; } = new List<string>();
     }
 
     public class ArticleListDto

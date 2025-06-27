@@ -50,6 +50,7 @@ export interface UpdateArticleDto {
   categoryIds: number[];
   tagIds: number[];
   images: File[];
+  imagePaths?: string[];
 }
 
 export interface User {

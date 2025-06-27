@@ -163,60 +163,60 @@ namespace NewsPortal.Application.Services
         {
             var article = await _articleRepository.GetArticleByIdAsync(id);
             if (article == null)
-            {
                 return null;
+
+            // Получаем текущие изображения из БД
+            var currentImagePaths = new List<string>();
+            if (!string.IsNullOrEmpty(article.ImagePaths))
+            {
+                try
+                {
+                    currentImagePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(article.ImagePaths) ?? new List<string>();
+                }
+                catch
+                {
+                    if (!string.IsNullOrEmpty(article.ImagePath))
+                        currentImagePaths.Add(article.ImagePath);
+                }
+            }
+            else if (!string.IsNullOrEmpty(article.ImagePath))
+            {
+                currentImagePaths.Add(article.ImagePath);
             }
 
-            // Обработка загрузки новых изображений
+            // 1. Удаляем изображения, которых нет в updateArticleDto.ImagePaths
+            var imagesToDelete = currentImagePaths
+                .Where(path => !updateArticleDto.ImagePaths.Contains(path))
+                .ToList();
+
+            foreach (var imgPath in imagesToDelete)
+            {
+                await DeleteImageAsync(imgPath);
+            }
+
+            // 2. Оставляем только те, что есть в updateArticleDto.ImagePaths
+            var newImagePaths = updateArticleDto.ImagePaths.ToList();
+
+            // 3. Добавляем новые изображения (если есть)
             if (updateArticleDto.Images != null && updateArticleDto.Images.Count > 0)
             {
-                // Удаляем старые изображения если они есть
-                if (!string.IsNullOrEmpty(article.ImagePaths))
-                {
-                    try
-                    {
-                        var oldImagePaths = System.Text.Json.JsonSerializer.Deserialize<List<string>>(article.ImagePaths);
-                        if (oldImagePaths != null)
-                        {
-                            foreach (var oldImagePath in oldImagePaths)
-                            {
-                                await DeleteImageAsync(oldImagePath);
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Если не удалось десериализовать, пробуем удалить как одиночный путь
-                        if (!string.IsNullOrEmpty(article.ImagePath))
-                        {
-                            await DeleteImageAsync(article.ImagePath);
-                        }
-                    }
-                }
-                else if (!string.IsNullOrEmpty(article.ImagePath))
-                {
-                    await DeleteImageAsync(article.ImagePath);
-                }
-                
-                // Сохраняем новые изображения
-                var imagePaths = new List<string>();
                 foreach (var image in updateArticleDto.Images)
                 {
                     var imagePath = await SaveImageAsync(image);
                     if (!string.IsNullOrEmpty(imagePath))
                     {
-                        imagePaths.Add(imagePath);
+                        newImagePaths.Add(imagePath);
                     }
                 }
-                
-                article.ImagePaths = imagePaths.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(imagePaths) : null;
-                article.ImagePath = imagePaths.FirstOrDefault(); // Для обратной совместимости
             }
 
+            // 4. Обновляем поля статьи
             article.Title = updateArticleDto.Title;
             article.Content = ConvertTextToHtml(updateArticleDto.Content);
+            article.ImagePaths = newImagePaths.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(newImagePaths) : null;
+            article.ImagePath = newImagePaths.FirstOrDefault(); // для обратной совместимости
 
-            // Update categories
+            // Категории
             article.ArticleCategories.Clear();
             foreach (var categoryId in updateArticleDto.CategoryIds)
             {
@@ -227,7 +227,7 @@ namespace NewsPortal.Application.Services
                 });
             }
 
-            // Update tags
+            // Теги
             article.ArticleTags.Clear();
             foreach (var tagId in updateArticleDto.TagIds)
             {
