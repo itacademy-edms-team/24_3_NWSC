@@ -9,5 +9,8 @@ namespace NewsPortal.Domain.Entities
         public DateTime RegisterDate { get; set; }
         public bool IsBlocked { get; set; }
         public string? BlockReason { get; set; }
+        public bool EmailConfirmed { get; set; } = false;
+        public string? EmailConfirmationToken { get; set; }
+        public DateTime? EmailConfirmationTokenExpires { get; set; }
     }
 }

@@ -49,6 +49,9 @@ const Header: React.FC = () => {
               >
                 <i className={`bi ${theme === 'light' ? 'bi-moon-stars' : 'bi-sun'} theme-icon`}></i>
               </button>
+              <Nav.Link as={Link} to="/verify-email" className="me-3">
+                <i className="bi bi-envelope-check"></i> Подтвердить почту
+              </Nav.Link>
             </Nav.Item>
             
             {isAuthenticated ? (

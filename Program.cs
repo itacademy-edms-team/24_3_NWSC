@@ -120,6 +120,18 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<AdminService>();
 
+// EmailSender DI
+builder.Services.AddSingleton(sp => {
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new NewsPortal.Infrastructure.EmailSender(
+        config["Email:SmtpHost"],
+        int.Parse(config["Email:SmtpPort"] ?? "587"),
+        config["Email:SmtpUser"],
+        config["Email:SmtpPass"],
+        config["Email:From"]
+    );
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

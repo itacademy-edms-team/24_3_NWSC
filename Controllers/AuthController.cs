@@ -9,6 +9,8 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using NewsPortal.Infrastructure;
 
 namespace NewsPortal.Controllers
 {
@@ -21,24 +23,28 @@ namespace NewsPortal.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<AuthController> _logger;
+        private readonly EmailSender _emailSender;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             SignInManager<ApplicationUser> signInManager,
             IHttpContextAccessor httpContextAccessor,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            EmailSender emailSender)
         {
             _userManager = userManager;
             _configuration = configuration;
             _signInManager = signInManager;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _emailSender = emailSender;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {
+            _logger.LogInformation($"Register endpoint called. Email: {model.Email}");
             var user = new ApplicationUser
             {
                 UserName = model.Email,
@@ -53,7 +59,17 @@ namespace NewsPortal.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "User");
-                return Ok(new { Message = "User registered successfully" });
+                // Генерация токена подтверждения
+                var token = Guid.NewGuid().ToString();
+                user.EmailConfirmationToken = token;
+                user.EmailConfirmationTokenExpires = DateTime.UtcNow.AddHours(24);
+                await _userManager.UpdateAsync(user);
+
+                // Ссылка для подтверждения
+                var confirmationLink = $"http://localhost:3000/verify-email?token={token}";
+                await _emailSender.SendAsync(user.Email, "Подтверждение почты", $"Перейдите по ссылке для подтверждения: <a href='{confirmationLink}'>Подтвердить</a>");
+
+                return Ok(new { Message = "User registered successfully. Проверьте почту для подтверждения." });
             }
 
             return BadRequest(result.Errors);
@@ -81,9 +97,9 @@ namespace NewsPortal.Controllers
 
                 var token = GenerateJwtToken(user);
                 return Ok(new { 
-                    Token = token,
-                    LogoutUrl = Url.Action("Logout", "Auth", null, Request.Scheme),
-                    User = new {
+                    token = token,
+                    logoutUrl = Url.Action("Logout", "Auth", null, Request.Scheme),
+                    user = new {
                         Email = user.Email,
                         FirstName = user.FirstName,
                         LastName = user.LastName
@@ -198,6 +214,69 @@ namespace NewsPortal.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+        {
+            if (string.IsNullOrEmpty(token))
+                return BadRequest(new { message = "Некорректный токен подтверждения." });
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailConfirmationToken == token && u.EmailConfirmationTokenExpires > DateTime.UtcNow);
+            if (user == null)
+                return BadRequest(new { message = "Некорректный или истёкший токен подтверждения." });
+
+            user.EmailConfirmed = true;
+            user.EmailConfirmationToken = null;
+            user.EmailConfirmationTokenExpires = null;
+            await _userManager.UpdateAsync(user);
+
+            return Ok(new { message = "Почта успешно подтверждена! Теперь вы можете войти в систему." });
+        }
+
+        [Authorize]
+        [HttpPost("send-confirmation-email")]
+        public async Task<IActionResult> SendConfirmationEmail()
+        {
+            _logger.LogInformation($"SendConfirmationEmail endpoint called. User: {User?.Identity?.Name}");
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            ApplicationUser user = null;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                user = await _userManager.FindByIdAsync(userId);
+            }
+            if (user == null && !string.IsNullOrEmpty(email))
+            {
+                user = await _userManager.FindByEmailAsync(email);
+            }
+
+            if (user == null)
+                return Unauthorized(new { message = "Пользователь не найден." });
+
+            if (user.EmailConfirmed)
+                return BadRequest(new { message = "Почта уже подтверждена." });
+
+            // Генерация нового токена
+            var token = Guid.NewGuid().ToString();
+            user.EmailConfirmationToken = token;
+            user.EmailConfirmationTokenExpires = DateTime.UtcNow.AddHours(24);
+            await _userManager.UpdateAsync(user);
+
+            // Ссылка для подтверждения
+            var confirmationLink = $"http://localhost:3000/verify-email?token={token}";
+            try
+            {
+                await _emailSender.SendAsync(user.Email, "Подтверждение почты", $"Перейдите по ссылке для подтверждения: <a href='{confirmationLink}'>Подтвердить</a>");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отправке письма подтверждения");
+                return StatusCode(500, new { message = "Ошибка отправки письма: " + ex.Message });
+            }
+
+            return Ok(new { message = "Письмо для подтверждения отправлено на вашу почту." });
         }
     }
 }
