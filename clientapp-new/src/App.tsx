@@ -28,7 +28,8 @@ import {
   CategoriesPage,
   TagsPage,
   ApiDebugPage,
-  VerifyEmailPage
+  VerifyEmailPage,
+  VerifyEmailSuccessPage
 } from './pages';
 
 // Админ страницы
@@ -60,6 +61,7 @@ function App() {
               <Route path="/tags" element={<TagsPage />} />
               <Route path="/tags/:id" element={<TagsPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/verify-email/success" element={<VerifyEmailSuccessPage />} />
               
               {/* Защищенные админ маршруты */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

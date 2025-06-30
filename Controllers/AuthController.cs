@@ -216,20 +216,42 @@ namespace NewsPortal.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        [AllowAnonymous]
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
+            _logger.LogInformation($"VerifyEmail endpoint called with token: {token}");
+
+            var isHtml = Request.Headers["Accept"].ToString().Contains("text/html");
+
             if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("VerifyEmail called with empty or null token");
+                if (isHtml)
+                    return Redirect("/verify-email?error=invalid");
                 return BadRequest(new { message = "Некорректный токен подтверждения." });
+            }
 
             var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailConfirmationToken == token && u.EmailConfirmationTokenExpires > DateTime.UtcNow);
             if (user == null)
+            {
+                _logger.LogWarning($"No user found with token: {token} or token expired");
+                if (isHtml)
+                    return Redirect("/verify-email?error=expired");
                 return BadRequest(new { message = "Некорректный или истёкший токен подтверждения." });
+            }
+
+            _logger.LogInformation($"Found user {user.Email} for token verification");
 
             user.EmailConfirmed = true;
             user.EmailConfirmationToken = null;
             user.EmailConfirmationTokenExpires = null;
             await _userManager.UpdateAsync(user);
+
+            _logger.LogInformation($"Email confirmed successfully for user: {user.Email}");
+
+            if (isHtml)
+                return Redirect("/verify-email/success");
 
             return Ok(new { message = "Почта успешно подтверждена! Теперь вы можете войти в систему." });
         }

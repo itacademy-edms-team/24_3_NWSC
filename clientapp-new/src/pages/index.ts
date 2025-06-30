@@ -11,4 +11,5 @@ export { default as AuthDebugPage } from './AuthDebugPage';
 export { default as ApiDebugPage } from './ApiDebugPage';
 export { default as CategoriesPage } from './CategoriesPage';
 export { default as TagsPage } from './TagsPage';
-export { default as VerifyEmailPage } from './VerifyEmailPage'; 
+export { default as VerifyEmailPage } from './VerifyEmailPage';
+export { default as VerifyEmailSuccessPage } from './VerifyEmailSuccessPage'; 
