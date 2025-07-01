@@ -233,6 +233,22 @@ const ArticlesPage: React.FC = () => {
           <div className="sticky-top" style={{ top: 90 }}>
             <WeatherWidget />
             <CurrencyWidget />
+            <div className="ad-banner border rounded p-2 mt-2 mb-2 position-relative" style={{ maxWidth: 220, minHeight: 400, background: '#f8f9fa', overflow: 'hidden' }}>
+              <span style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-40deg)',
+                color: '#888',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                opacity: 0.7
+              }}>
+                Здесь могла быть ваша реклама
+              </span>
+            </div>
           </div>
         </Col>
       </Row>

@@ -23,11 +23,11 @@ const Header: React.FC = () => {
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="mb-4">
       <Container>
-        <Navbar.Brand as={Link} to="/">Новостной портал</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/articles">Новостной портал</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            <Nav.Link as={Link} to="/">Главная</Nav.Link>
+            {/* <Nav.Link as={Link} to="/">Главная</Nav.Link> */}
             <Nav.Link as={Link} to="/articles">Статьи</Nav.Link>
             <Nav.Link as={Link} to="/categories">Категории</Nav.Link>
             <Nav.Link as={Link} to="/tags">Теги</Nav.Link>
